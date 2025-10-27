@@ -145,6 +145,14 @@ import (
 		// Optional readiness probe override
 		// Apps or environments can override the entire probe or specific fields
 		readinessProbe?: k8s.#Probe
+
+		// Optional container ports override
+		// Apps or environments can override to expose different/additional ports
+		containerPorts?: [...k8s.#ContainerPort]
+
+		// Optional service ports override
+		// Apps or environments can override to expose different service ports
+		servicePorts?: [...k8s.#ServicePort]
 	}
 
 	// appConfig is a constraint that environment files must satisfy
@@ -217,7 +225,9 @@ import (
 						image:           appConfig.image
 						imagePullPolicy: "Always"
 
-						ports: [{
+						// Container ports with overridable defaults
+						// Apps or environments can override via appConfig.containerPorts
+						ports: appConfig.containerPorts | *[{
 							name:          "http"
 							containerPort: 8080
 							protocol:      "TCP"
@@ -402,7 +412,9 @@ import (
 				component: "backend"
 			}
 
-			ports: [{
+			// Service ports with overridable defaults
+			// Apps or environments can override via appConfig.servicePorts
+			ports: appConfig.servicePorts | *[{
 				name:       "http"
 				protocol:   "TCP"
 				port:       80
