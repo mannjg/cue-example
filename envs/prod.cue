@@ -59,6 +59,19 @@ foo: {
 			},
 		]
 
+		// Extend env with production-specific individual environment variables
+		// These are only present in production
+		additionalEnv: [
+			{
+				name:  "PRODUCTION_MODE"
+				value: "true"
+			},
+			{
+				name:  "ALERT_WEBHOOK_URL"
+				value: "https://alerts.example.com/webhook/foo"
+			},
+		]
+
 		// Override volume source names for production environment
 		volumeSourceNames: {
 			configMapName: "foo-prod-config"

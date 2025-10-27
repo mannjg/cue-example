@@ -63,6 +63,10 @@ spec:
                 configMapKeyRef:
                   name: baz-config
                   key: log-level
+            - name: BAZ_FEATURE_FLAG
+              value: enabled
+            - name: BAZ_API_VERSION
+              value: v2
           envFrom:
             - configMapRef:
                 name: baz-config

@@ -73,6 +73,10 @@ spec:
                 configMapKeyRef:
                   name: foo-config
                   key: log-level
+            - name: PRODUCTION_MODE
+              value: "true"
+            - name: ALERT_WEBHOOK_URL
+              value: https://alerts.example.com/webhook/foo
           envFrom:
             - configMapRef:
                 name: foo-config

@@ -43,6 +43,59 @@ import (
 		},
 	]
 
+	// defaultEnv defines the app-level default individual environment variables
+	// Can be extended by apps or environments via appConfig.additionalEnv
+	defaultEnv: [
+		{
+			name:  "APP_ENV"
+			value: "production"
+		},
+		{
+			name:  "APP_PORT"
+			value: "8080"
+		},
+		{
+			name:  "DATABASE_HOST"
+			value: "postgres.database.svc.cluster.local"
+		},
+		{
+			name:  "DATABASE_PORT"
+			value: "5432"
+		},
+		{
+			name:  "DATABASE_NAME"
+			value: appName
+		},
+		{
+			name: "DATABASE_USER"
+			valueFrom: secretKeyRef: {
+				name: "\(appName)-secrets"
+				key:  "db-user"
+			}
+		},
+		{
+			name: "DATABASE_PASSWORD"
+			valueFrom: secretKeyRef: {
+				name: "\(appName)-secrets"
+				key:  "db-password"
+			}
+		},
+		{
+			name: "REDIS_URL"
+			valueFrom: configMapKeyRef: {
+				name: "\(appName)-config"
+				key:  "redis-url"
+			}
+		},
+		{
+			name: "LOG_LEVEL"
+			valueFrom: configMapKeyRef: {
+				name: "\(appName)-config"
+				key:  "log-level"
+			}
+		},
+	]
+
 	// resources_list defines which Kubernetes resources this app includes
 	// This list is used by generate-manifests.sh to dynamically export resources
 	// Default includes deployment and service; apps can override to add more (e.g., configmap)
@@ -73,6 +126,11 @@ import (
 		// Environments specify additional sources here, not the complete list
 		// Defaults to empty list if not specified
 		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
+
+		// Additional individual env vars to append to defaults
+		// Apps or environments specify additional vars here, not the complete list
+		// Defaults to empty list if not specified
+		additionalEnv: [...k8s.#EnvVar] | *[]
 
 		// Volume source names - can be overridden per environment
 		volumeSourceNames?: {
@@ -105,10 +163,14 @@ import (
 	// envFrom combines defaults with environment-specific additions
 	envFrom: list.Concat([defaultEnvFrom, appConfig.additionalEnvFrom])
 
+	// env combines default individual vars with app/environment-specific additions
+	env: list.Concat([defaultEnv, appConfig.additionalEnv])
+
 	// deployment defines the actual Kubernetes Deployment resource
 	deployment: k8s.#Deployment & {
 		let ns = appConfig.namespace
 		let envFromSources = envFrom
+		let envVars = env
 		metadata: {
 			name:      appName
 			namespace: ns
@@ -157,57 +219,8 @@ import (
 						envFrom: envFromSources
 
 						// Application-specific environment variables
-						env: [
-							{
-								name:  "APP_ENV"
-								value: "production"
-							},
-							{
-								name:  "APP_PORT"
-								value: "8080"
-							},
-							{
-								name:  "DATABASE_HOST"
-								value: "postgres.database.svc.cluster.local"
-							},
-							{
-								name:  "DATABASE_PORT"
-								value: "5432"
-							},
-							{
-								name:  "DATABASE_NAME"
-								value: appName
-							},
-							{
-								name: "DATABASE_USER"
-								valueFrom: secretKeyRef: {
-									name: "\(appName)-secrets"
-									key:  "db-user"
-								}
-							},
-							{
-								name: "DATABASE_PASSWORD"
-								valueFrom: secretKeyRef: {
-									name: "\(appName)-secrets"
-									key:  "db-password"
-								}
-							},
-							{
-								name: "REDIS_URL"
-								valueFrom: configMapKeyRef: {
-									name: "\(appName)-config"
-									key:  "redis-url"
-								}
-							},
-							{
-								name: "LOG_LEVEL"
-								valueFrom: configMapKeyRef: {
-									name: "\(appName)-config"
-									key:  "log-level"
-								}
-							},
-						]
-
+						// Combines defaultEnv with app/environment-specific additionalEnv
+						env: envVars
 						volumeMounts: [
 							{
 								name:      "data"
