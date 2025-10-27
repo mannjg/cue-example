@@ -64,3 +64,27 @@ bar: appConfig: {
 	// Staging namespace
 	namespace: "staging"
 }
+
+// Staging environment configuration for baz app
+baz: appConfig: {
+	// Use stage-specific image tag
+	image: "baz:stage-v1.2.3-rc1"
+
+	// Multiple replicas for high availability testing
+	replicas: 2
+
+	// Moderate resources
+	resources: {
+		requests: {
+			cpu:    "250m"
+			memory: "512Mi"
+		}
+		limits: {
+			cpu:    "500m"
+			memory: "1Gi"
+		}
+	}
+
+	// Staging namespace
+	namespace: "staging"
+}

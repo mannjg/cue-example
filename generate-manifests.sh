@@ -15,7 +15,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 # Define apps and environments
-APPS=("foo" "bar")
+APPS=("foo" "bar" "baz")
 ENVS=("dev" "stage" "prod")
 
 echo -e "${BLUE}Generating Kubernetes manifests from CUE definitions...${NC}"

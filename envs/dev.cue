@@ -62,3 +62,28 @@ bar: appConfig: {
 	// Development namespace
 	namespace: "dev"
 }
+
+// Development environment configuration for baz app
+// Optimized for fast iteration and minimal resource usage
+baz: appConfig: {
+	// Use latest dev image for rapid iteration
+	image: "baz:dev-latest"
+
+	// Single replica for development
+	replicas: 1
+
+	// Minimal resources for development
+	resources: {
+		requests: {
+			cpu:    "100m"
+			memory: "128Mi"
+		}
+		limits: {
+			cpu:    "200m"
+			memory: "256Mi"
+		}
+	}
+
+	// Development namespace
+	namespace: "dev"
+}

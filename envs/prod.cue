@@ -176,3 +176,68 @@ bar: {
 		}
 	}
 }
+
+// Production environment configuration for baz app
+baz: {
+	appConfig: {
+		// Use specific versioned image tag for production
+		image: "baz:v1.2.3"
+
+		// Multiple replicas for high availability
+		replicas: 3
+
+		// Production-grade resources
+		resources: {
+			requests: {
+				cpu:    "500m"
+				memory: "1Gi"
+			}
+			limits: {
+				cpu:    "1000m"
+				memory: "2Gi"
+			}
+		}
+
+		// Production namespace
+		namespace: "production"
+
+		// Node selector for production nodes
+		nodeSelector: {
+			"environment": "production"
+			"workload":    "application"
+		}
+
+		// Extend labels with environment-specific label
+		labels: {
+			environment: "production"
+			tier:        "standard"  // Standard tier for baz
+		}
+
+		// Override volume source names for production environment
+		volumeSourceNames: {
+			configMapName: "baz-prod-config"
+			secretName:    "baz-prod-secrets"
+		}
+	}
+
+	// Production-specific overrides for baz deployment
+	deployment: {
+		metadata: annotations: {
+			"deployment.kubernetes.io/revision": "1"
+			"maintainer":                        "platform-team@example.com"
+			"cost-center":                       "engineering"
+		}
+
+		spec: {
+			strategy: rollingUpdate: {
+				maxSurge:       1
+				maxUnavailable: 0
+			}
+
+			template: metadata: annotations: {
+				"backup.velero.io/backup-volumes": "data"
+				"sidecar.istio.io/inject":          "true"
+			}
+		}
+	}
+}
