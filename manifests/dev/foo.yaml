@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
-  namespace: staging
+  name: foo
+  namespace: dev
   labels:
-    app: myapp
+    app: foo
     component: backend
     managed: cue
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: myapp
+      app: foo
       component: backend
   strategy:
     type: RollingUpdate
@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       labels:
-        app: myapp
+        app: foo
         component: backend
         managed: cue
       annotations:
@@ -30,8 +30,8 @@ spec:
         prometheus.io/path: /metrics
     spec:
       containers:
-        - name: myapp
-          image: myapp:stage-v1.2.3-rc1
+        - name: foo
+          image: foo:dev-latest
           env:
             - name: APP_ENV
               value: production
@@ -42,26 +42,26 @@ spec:
             - name: DATABASE_PORT
               value: "5432"
             - name: DATABASE_NAME
-              value: myapp
+              value: foo
             - name: DATABASE_USER
               valueFrom:
                 secretKeyRef:
-                  name: myapp-secrets
+                  name: foo-secrets
                   key: db-user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: myapp-secrets
+                  name: foo-secrets
                   key: db-password
             - name: REDIS_URL
               valueFrom:
                 configMapKeyRef:
-                  name: myapp-config
+                  name: foo-config
                   key: redis-url
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
-                  name: myapp-config
+                  name: foo-config
                   key: log-level
           imagePullPolicy: Always
           livenessProbe:
@@ -90,11 +90,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 100m
+              memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 200m
+              memory: 256Mi
           volumeMounts:
             - name: data
               mountPath: /var/lib/myapp/data
@@ -117,10 +117,10 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: myapp-data
+            claimName: foo-data
         - name: config
           configMap:
-            name: myapp-config
+            name: foo-config
         - name: cache
           emptyDir:
             medium: Memory
@@ -130,21 +130,21 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
-      serviceAccountName: myapp
+      serviceAccountName: foo
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp
-  namespace: staging
+  name: foo
+  namespace: dev
   labels:
-    app: myapp
+    app: foo
     component: backend
     managed: cue
 spec:
   type: ClusterIP
   selector:
-    app: myapp
+    app: foo
     component: backend
   ports:
     - name: http

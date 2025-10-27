@@ -6,50 +6,47 @@ import (
 	"example.com/cue-example/services"
 )
 
-// Import all from services to get deployment definition
+// Import all from services to get deployment definitions
 services
 
-// Production environment configuration
+// Production environment configuration for foo app
 // Optimized for reliability, performance, and high availability
-appConfig: {
-	// Use specific versioned image tag for production
-	// Never use 'latest' or floating tags in production
-	image: "myapp:v1.2.3"
+foo: {
+	appConfig: {
+		// Use specific versioned image tag for production
+		// Never use 'latest' or floating tags in production
+		image: "foo:v1.2.3"
 
-	// Multiple replicas for high availability
-	// Ensures service continuity during rolling updates and node failures
-	replicas: 3
+		// Multiple replicas for high availability
+		// Ensures service continuity during rolling updates and node failures
+		replicas: 3
 
-	// Production-grade resources
-	// Sized based on actual load testing and monitoring data
-	resources: {
-		requests: {
-			cpu:    "500m"
-			memory: "1Gi"
+		// Production-grade resources
+		// Sized based on actual load testing and monitoring data
+		resources: {
+			requests: {
+				cpu:    "500m"
+				memory: "1Gi"
+			}
+			limits: {
+				cpu:    "1000m"
+				memory: "2Gi"
+			}
 		}
-		limits: {
-			cpu:    "1000m"
-			memory: "2Gi"
+
+		// Production namespace
+		namespace: "production"
+
+		// Node selector to run on production-grade nodes
+		// Ensures production workloads run on dedicated, reliable hardware
+		nodeSelector: {
+			"environment": "production"
+			"workload":    "application"
 		}
 	}
 
-	// Production namespace
-	namespace: "production"
-
-	// Node selector to run on production-grade nodes
-	// Ensures production workloads run on dedicated, reliable hardware
-	nodeSelector: {
-		"environment": "production"
-		"workload":    "application"
-		// Example: might also select nodes with SSD storage
-		// "storage": "ssd"
-	}
-}
-
-// Production-specific overrides to base deployment configuration
-// These could include additional production requirements
-// Since services is already imported above, we can directly override deployment fields
-deployment: {
+	// Production-specific overrides for foo deployment
+	deployment: {
 	// Add production-specific annotations
 	metadata: annotations: {
 		"deployment.kubernetes.io/revision": "1"
@@ -81,12 +78,74 @@ deployment: {
 				// 	weight: 100
 				// 	podAffinityTerm: {
 				// 		labelSelector: matchLabels: {
-				// 			app: "myapp"
+				// 			app: "foo"
 				// 		}
 				// 		topologyKey: "topology.kubernetes.io/zone"
 				// 	}
 				// }]
 			}
+		}
+	}
+	}
+}
+
+// Production environment configuration for bar app
+bar: {
+	appConfig: {
+		// Use specific versioned image tag for production
+		image: "bar:v1.2.3"
+
+		// Multiple replicas for high availability
+		replicas: 3
+
+		// Production-grade resources
+		resources: {
+			requests: {
+				cpu:    "500m"
+				memory: "1Gi"
+			}
+			limits: {
+				cpu:    "1000m"
+				memory: "2Gi"
+			}
+		}
+
+		// Production namespace
+		namespace: "production"
+
+		// Node selector for production nodes
+		nodeSelector: {
+			"environment": "production"
+			"workload":    "application"
+		}
+	}
+
+	// Production-specific overrides for bar deployment
+	deployment: {
+		metadata: annotations: {
+			"deployment.kubernetes.io/revision": "1"
+			"maintainer":                        "platform-team@example.com"
+			"cost-center":                       "engineering"
+		}
+
+		spec: {
+			strategy: rollingUpdate: {
+				maxSurge:       1
+				maxUnavailable: 0
+			}
+
+			template: metadata: annotations: {
+				"backup.velero.io/backup-volumes": "data"
+				"sidecar.istio.io/inject":          "true"
+			}
+		}
+	}
+
+	// Production-specific overrides for bar ConfigMap
+	configmap: {
+		data: {
+			// Override log level for production
+			"log-level": "warn"
 		}
 	}
 }

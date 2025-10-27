@@ -6,6 +6,10 @@ package services
 
 import "example.com/cue-example/k8s"
 
+// appName defines the application name used throughout the configuration
+// Change this value to customize for a different application
+appName: string | *"myapp"
+
 // #AppConfig defines the schema for instance-specific configuration
 // These values must be provided by environment files (dev.cue, stage.cue, prod.cue)
 #AppConfig: {
@@ -37,13 +41,13 @@ appConfig: #AppConfig & {
 // for instance-specific values
 deployment: k8s.#Deployment & {
 	metadata: {
-		name: "myapp"
+		name: appName
 		// Use namespace from appConfig if provided, otherwise default
 		if appConfig.namespace != _|_ {
 			namespace: appConfig.namespace
 		}
 		labels: {
-			app:       "myapp"
+			app:       appName
 			component: "backend"
 			managed:   "cue"
 		}
@@ -55,7 +59,7 @@ deployment: k8s.#Deployment & {
 
 		// Selector must match template labels
 		selector: matchLabels: {
-			app:       "myapp"
+			app:       appName
 			component: "backend"
 		}
 
@@ -71,7 +75,7 @@ deployment: k8s.#Deployment & {
 		template: {
 			metadata: {
 				labels: {
-					app:       "myapp"
+					app:       appName
 					component: "backend"
 					managed:   "cue"
 				}
@@ -85,7 +89,7 @@ deployment: k8s.#Deployment & {
 			spec: {
 				// Main application container
 				containers: [{
-					name: "myapp"
+					name: appName
 
 					// Instance-specific: provided by env files
 					image: appConfig.image
@@ -121,33 +125,33 @@ deployment: k8s.#Deployment & {
 						},
 						{
 							name:  "DATABASE_NAME"
-							value: "myapp"
+							value: appName
 						},
 						{
 							name: "DATABASE_USER"
 							valueFrom: secretKeyRef: {
-								name: "myapp-secrets"
+								name: "\(appName)-secrets"
 								key:  "db-user"
 							}
 						},
 						{
 							name: "DATABASE_PASSWORD"
 							valueFrom: secretKeyRef: {
-								name: "myapp-secrets"
+								name: "\(appName)-secrets"
 								key:  "db-password"
 							}
 						},
 						{
 							name: "REDIS_URL"
 							valueFrom: configMapKeyRef: {
-								name: "myapp-config"
+								name: "\(appName)-config"
 								key:  "redis-url"
 							}
 						},
 						{
 							name: "LOG_LEVEL"
 							valueFrom: configMapKeyRef: {
-								name: "myapp-config"
+								name: "\(appName)-config"
 								key:  "log-level"
 							}
 						},
@@ -218,13 +222,13 @@ deployment: k8s.#Deployment & {
 					{
 						name: "data"
 						persistentVolumeClaim: {
-							claimName: "myapp-data"
+							claimName: "\(appName)-data"
 						}
 					},
 					{
 						name: "config"
 						configMap: {
-							name: "myapp-config"
+							name: "\(appName)-config"
 						}
 					},
 					{
@@ -250,7 +254,7 @@ deployment: k8s.#Deployment & {
 				}
 
 				// Service account for the application
-				serviceAccountName: "myapp"
+				serviceAccountName: appName
 			}
 		}
 	}
@@ -260,13 +264,13 @@ deployment: k8s.#Deployment & {
 // Exposes the application deployment via a ClusterIP service
 service: k8s.#Service & {
 	metadata: {
-		name: "myapp"
+		name: appName
 		// Use same namespace as deployment
 		if appConfig.namespace != _|_ {
 			namespace: appConfig.namespace
 		}
 		labels: {
-			app:       "myapp"
+			app:       appName
 			component: "backend"
 			managed:   "cue"
 		}
@@ -277,7 +281,7 @@ service: k8s.#Service & {
 
 		// Select pods with matching labels
 		selector: {
-			app:       "myapp"
+			app:       appName
 			component: "backend"
 		}
 

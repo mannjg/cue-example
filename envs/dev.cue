@@ -6,14 +6,14 @@ import (
 	"example.com/cue-example/services"
 )
 
-// Import all from services to get deployment definition
+// Import all from services to get deployment definitions
 services
 
-// Development environment configuration
+// Development environment configuration for foo app
 // Optimized for fast iteration and minimal resource usage
-appConfig: {
+foo: appConfig: {
 	// Use latest dev image for rapid iteration
-	image: "myapp:dev-latest"
+	image: "foo:dev-latest"
 
 	// Single replica for development
 	replicas: 1
@@ -36,4 +36,29 @@ appConfig: {
 
 	// No node selector - can run on any node
 	// nodeSelector not specified, runs anywhere
+}
+
+// Development environment configuration for bar app
+// Optimized for fast iteration and minimal resource usage
+bar: appConfig: {
+	// Use latest dev image for rapid iteration
+	image: "bar:dev-latest"
+
+	// Single replica for development
+	replicas: 1
+
+	// Minimal resources for development
+	resources: {
+		requests: {
+			cpu:    "100m"
+			memory: "128Mi"
+		}
+		limits: {
+			cpu:    "200m"
+			memory: "256Mi"
+		}
+	}
+
+	// Development namespace
+	namespace: "dev"
 }

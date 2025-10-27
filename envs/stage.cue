@@ -6,16 +6,14 @@ import (
 	"example.com/cue-example/services"
 )
 
-// Import all from services to get deployment definition
+// Import all from services to get deployment definitions
 services
 
-// Staging environment configuration
-// Production-like environment for testing and validation
-// before promoting to production
-appConfig: {
-	// Use stage-specific image tag
-	// Typically built from release candidate or main branch
-	image: "myapp:stage-v1.2.3-rc1"
+// Staging environment configuration for foo app
+// Production-like environment for testing and validation before promoting to production
+foo: appConfig: {
+	// Use stage-specific image tag - typically built from release candidate or main branch
+	image: "foo:stage-v1.2.3-rc1"
 
 	// Multiple replicas for high availability testing
 	replicas: 2
@@ -35,11 +33,28 @@ appConfig: {
 
 	// Staging namespace
 	namespace: "staging"
+}
 
-	// Optional: run on specific node pool if available
-	// Uncomment if your cluster has dedicated staging nodes
-	// nodeSelector: {
-	// 	"environment": "staging"
-	// 	"workload":    "general"
-	// }
+// Staging environment configuration for bar app
+bar: appConfig: {
+	// Use stage-specific image tag
+	image: "bar:stage-v1.2.3-rc1"
+
+	// Multiple replicas for high availability testing
+	replicas: 2
+
+	// Moderate resources
+	resources: {
+		requests: {
+			cpu:    "250m"
+			memory: "512Mi"
+		}
+		limits: {
+			cpu:    "500m"
+			memory: "1Gi"
+		}
+	}
+
+	// Staging namespace
+	namespace: "staging"
 }

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Generate Kubernetes manifests for all environments
-# This script uses CUE to export Deployment and Service resources
+# This script uses CUE to dynamically export resources based on each app's resources_list definition
+# Each app gets its own YAML file per environment for individual ArgoCD Application management
 
 set -e
 
@@ -10,40 +11,82 @@ cd "$SCRIPT_DIR"
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
+# Define apps and environments
+APPS=("foo" "bar")
+ENVS=("dev" "stage" "prod")
+
 echo -e "${BLUE}Generating Kubernetes manifests from CUE definitions...${NC}"
+echo -e "${YELLOW}Output: One YAML file per app per environment${NC}"
+echo -e "${YELLOW}Resources are dynamically determined from each app's resources_list${NC}"
 echo
 
-# Create manifests directory if it doesn't exist
-mkdir -p manifests
+# Create environment directories
+for env in "${ENVS[@]}"; do
+    mkdir -p "manifests/$env"
+done
 
-# Export development environment
-echo -e "${BLUE}[1/3] Generating dev.yaml...${NC}"
-cue export ./envs/dev.cue -e deployment -e service --out yaml > manifests/dev.yaml
-echo -e "${GREEN}✓ manifests/dev.yaml created${NC}"
+# Counter for progress
+total=$((${#ENVS[@]} * ${#APPS[@]}))
+current=0
 
-# Export staging environment
-echo -e "${BLUE}[2/3] Generating stage.yaml...${NC}"
-cue export ./envs/stage.cue -e deployment -e service --out yaml > manifests/stage.yaml
-echo -e "${GREEN}✓ manifests/stage.yaml created${NC}"
+# Generate manifests for each environment and app
+for env in "${ENVS[@]}"; do
+    for app in "${APPS[@]}"; do
+        current=$((current + 1))
 
-# Export production environment
-echo -e "${BLUE}[3/3] Generating prod.yaml...${NC}"
-cue export ./envs/prod.cue -e deployment -e service --out yaml > manifests/prod.yaml
-echo -e "${GREEN}✓ manifests/prod.yaml created${NC}"
+        echo -e "${BLUE}[$current/$total] Generating $env/$app.yaml...${NC}"
+
+        # Query the app's resources_list from CUE
+        resources_json=$(cue export "./envs/$env.cue" -e "$app.resources_list" --out json 2>/dev/null | tr -d '\n' || echo "[]")
+
+        # Parse JSON array into bash array
+        # Remove brackets, quotes, and whitespace, split by comma
+        resources_str=$(echo "$resources_json" | sed 's/[][]//g' | sed 's/"//g' | tr -d ' ')
+        IFS=',' read -ra resources <<< "$resources_str"
+
+        # Build export flags dynamically
+        export_flags=""
+        for resource in "${resources[@]}"; do
+            # Trim whitespace
+            resource=$(echo "$resource" | xargs)
+            if [ -n "$resource" ]; then
+                export_flags="$export_flags -e $app.$resource"
+            fi
+        done
+
+        # Export app-specific resources
+        if [ -n "$export_flags" ]; then
+            cue export "./envs/$env.cue" $export_flags --out yaml > "manifests/$env/$app.yaml"
+            echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
+        else
+            echo -e "${YELLOW}⚠ No resources defined for $app, skipping${NC}"
+        fi
+    done
+done
 
 echo
 echo -e "${GREEN}All manifests generated successfully!${NC}"
 echo
-echo "Manifest files:"
-ls -lh manifests/*.yaml | awk '{print "  " $9 " (" $5 ")"}'
-echo
-echo "Each manifest contains:"
-echo "  - Deployment resource"
-echo "  - Service resource"
-echo
+echo "Generated structure:"
+for env in "${ENVS[@]}"; do
+    echo "manifests/$env/"
+    for app in "${APPS[@]}"; do
+        if [ -f "manifests/$env/$app.yaml" ]; then
+            size=$(ls -lh "manifests/$env/$app.yaml" | awk '{print $5}')
+            resource_count=$(grep -c '^kind:' "manifests/$env/$app.yaml")
+            # Get resource types
+            resource_types=$(grep '^kind:' "manifests/$env/$app.yaml" | awk '{print $2}' | tr '\n' ', ' | sed 's/,$//')
+            echo "  ├── $app.yaml ($size, $resource_count resources: $resource_types)"
+        fi
+    done
+    echo
+done
+
 echo "These manifests are ready for:"
-echo "  - kubectl apply -f manifests/<env>.yaml"
-echo "  - ArgoCD GitOps deployment"
-echo "  - CI/CD pipelines"
+echo "  - Individual ArgoCD Application per app"
+echo "  - kubectl apply -f manifests/<env>/<app>.yaml"
+echo "  - Selective app deployments"
+echo "  - Independent app sync policies"

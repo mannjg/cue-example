@@ -1,17 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
-  namespace: dev
+  name: bar
+  namespace: production
   labels:
-    app: myapp
+    app: bar
     component: backend
     managed: cue
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    maintainer: platform-team@example.com
+    cost-center: engineering
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: myapp
+      app: bar
       component: backend
   strategy:
     type: RollingUpdate
@@ -21,17 +25,19 @@ spec:
   template:
     metadata:
       labels:
-        app: myapp
+        app: bar
         component: backend
         managed: cue
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
         prometheus.io/path: /metrics
+        backup.velero.io/backup-volumes: data
+        sidecar.istio.io/inject: "true"
     spec:
       containers:
-        - name: myapp
-          image: myapp:dev-latest
+        - name: bar
+          image: bar:v1.2.3
           env:
             - name: APP_ENV
               value: production
@@ -42,26 +48,26 @@ spec:
             - name: DATABASE_PORT
               value: "5432"
             - name: DATABASE_NAME
-              value: myapp
+              value: bar
             - name: DATABASE_USER
               valueFrom:
                 secretKeyRef:
-                  name: myapp-secrets
+                  name: bar-secrets
                   key: db-user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: myapp-secrets
+                  name: bar-secrets
                   key: db-password
             - name: REDIS_URL
               valueFrom:
                 configMapKeyRef:
-                  name: myapp-config
+                  name: bar-config
                   key: redis-url
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
-                  name: myapp-config
+                  name: bar-config
                   key: log-level
           imagePullPolicy: Always
           livenessProbe:
@@ -90,11 +96,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 500m
+              memory: 1Gi
             limits:
-              cpu: 200m
-              memory: 256Mi
+              cpu: 1000m
+              memory: 2Gi
           volumeMounts:
             - name: data
               mountPath: /var/lib/myapp/data
@@ -117,34 +123,37 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: myapp-data
+            claimName: bar-data
         - name: config
           configMap:
-            name: myapp-config
+            name: bar-config
         - name: cache
           emptyDir:
             medium: Memory
             sizeLimit: 256Mi
+      nodeSelector:
+        environment: production
+        workload: application
       securityContext:
         runAsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
-      serviceAccountName: myapp
+      serviceAccountName: bar
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp
-  namespace: dev
+  name: bar
+  namespace: production
   labels:
-    app: myapp
+    app: bar
     component: backend
     managed: cue
 spec:
   type: ClusterIP
   selector:
-    app: myapp
+    app: bar
     component: backend
   ports:
     - name: http
@@ -152,3 +161,16 @@ spec:
       port: 80
       targetPort: 8080
   sessionAffinity: None
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar-config
+  namespace: production
+  labels:
+    app: bar
+    component: backend
+    managed: cue
+data:
+  redis-url: redis://redis.cache.svc.cluster.local:6379
+  log-level: warn
