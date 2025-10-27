@@ -18,6 +18,14 @@ foo: {
 	// If not overridden, uses this value; if this is not set, falls back to k8s schema default "default"
 	defaultNamespace: "foo-namespace"
 
+	// defaultLabels defines the app-level default labels applied to all resources
+	// Can be extended or overridden by environment files via appConfig.labels
+	defaultLabels: {
+		app:       appName
+		component: "backend"
+		managed:   "cue"
+	}
+
 	// resources_list defines which Kubernetes resources this app includes
 	// This list is used by generate-manifests.sh to dynamically export resources
 	resources_list: ["deployment", "service"]
@@ -39,13 +47,20 @@ foo: {
 	
 		// Namespace can be overridden by environment
 		namespace?: string
+
+		// Labels can be extended or overridden by environment
+		labels?: [string]: string
 	}
 
 	// appConfig is a constraint that environment files must satisfy
-	// The constraint limits replicas to a reasonable range and provides app-level namespace default
+	// The constraint limits replicas to a reasonable range and provides app-level defaults
 	appConfig: #AppConfig & {
 		replicas:  >=1 & <=10
 		namespace: string | *defaultNamespace
+		labels: {
+			defaultLabels  // Include default labels
+			...            // Allow environments to add or override
+		}
 	}
 	
 	// deployment defines the actual Kubernetes Deployment resource
@@ -57,11 +72,7 @@ foo: {
 		metadata: {
 			name:      appName
 			namespace: ns
-			labels: {
-				app:       appName
-				component: "backend"
-				managed:   "cue"
-			}
+			labels:    appConfig.labels
 		}
 	
 		spec: {
@@ -85,11 +96,7 @@ foo: {
 	
 			template: {
 				metadata: {
-					labels: {
-						app:       appName
-						component: "backend"
-						managed:   "cue"
-					}
+					labels: appConfig.labels
 					annotations: {
 						"prometheus.io/scrape": "true"
 						"prometheus.io/port":   "8080"
@@ -278,11 +285,7 @@ foo: {
 		metadata: {
 			name:      appName
 			namespace: ns
-			labels: {
-				app:       appName
-				component: "backend"
-				managed:   "cue"
-			}
+			labels:    appConfig.labels
 		}
 	
 		spec: {

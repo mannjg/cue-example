@@ -6,7 +6,9 @@ metadata:
   labels:
     app: foo
     component: backend
+    environment: production
     managed: cue
+    tier: critical
   annotations:
     deployment.kubernetes.io/revision: "1"
     maintainer: platform-team@example.com
@@ -27,7 +29,9 @@ spec:
       labels:
         app: foo
         component: backend
+        environment: production
         managed: cue
+        tier: critical
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
@@ -149,7 +153,9 @@ metadata:
   labels:
     app: foo
     component: backend
+    environment: production
     managed: cue
+    tier: critical
 spec:
   type: ClusterIP
   selector:

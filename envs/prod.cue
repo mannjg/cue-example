@@ -43,6 +43,12 @@ foo: {
 			"environment": "production"
 			"workload":    "application"
 		}
+
+		// Extend labels with environment-specific label
+		labels: {
+			environment: "production"  // Additional label for production
+			tier:        "critical"     // Mark as critical tier
+		}
 	}
 
 	// Production-specific overrides for foo deployment
