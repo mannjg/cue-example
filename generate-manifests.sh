@@ -42,13 +42,17 @@ for env in "${ENVS[@]}"; do
 
         # Query the app's resources_list from CUE
         echo "  → Querying: cue export ./envs/$env.cue -e $app.resources_list --out json"
-        resources_json=$(cue export "./envs/$env.cue" -e "$app.resources_list" --out json 2>&1 | tr -d '\n')
+        resources_output=$(cue export "./envs/$env.cue" -e "$app.resources_list" --out json 2>&1)
+        resources_status=$?
 
         # Check if cue export failed
-        if [ $? -ne 0 ]; then
+        if [ $resources_status -ne 0 ]; then
             echo -e "${RED}✗ Error querying resources_list for $app in $env:${NC}"
-            echo -e "${RED}  $resources_json${NC}"
+            echo "$resources_output" | sed 's/^/  /' | GREP_COLORS='mt=01;31' grep --color=always '.*'
             resources_json="[]"
+        else
+            # Strip newlines only from successful JSON output
+            resources_json=$(echo "$resources_output" | tr -d '\n')
         fi
 
         # Handle empty or error output
@@ -82,7 +86,7 @@ for env in "${ENVS[@]}"; do
                 echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
             else
                 echo -e "${RED}✗ Error exporting resources for $app in $env:${NC}"
-                echo -e "${RED}$export_output${NC}"
+                echo "$export_output" | sed 's/^/  /' | GREP_COLORS='mt=01;31' grep --color=always '.*'
                 exit 1
             fi
         else
