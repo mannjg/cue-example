@@ -4,7 +4,10 @@
 // (image, replicas, resources) to be provided by environment files
 package services
 
-import "example.com/cue-example/k8s"
+import (
+	"example.com/cue-example/k8s"
+	"list"
+)
 
 // foo application configuration
 foo: {
@@ -26,6 +29,21 @@ foo: {
 		managed:   "cue"
 	}
 
+	// defaultEnvFrom defines the app-level default environment variable sources
+	// Can be extended by environment files via appConfig.envFrom
+	defaultEnvFrom: [
+		{
+			configMapRef: {
+				name: "\(appName)-config"
+			}
+		},
+		{
+			secretRef: {
+				name: "\(appName)-secrets"
+			}
+		},
+	]
+
 	// resources_list defines which Kubernetes resources this app includes
 	// This list is used by generate-manifests.sh to dynamically export resources
 	resources_list: ["deployment", "service"]
@@ -35,21 +53,26 @@ foo: {
 	#AppConfig: {
 		// Container image with tag (e.g., "myapp:v1.2.3")
 		image: string
-	
+
 		// Number of pod replicas
 		replicas: int & >=1
-	
+
 		// Resource requests and limits
 		resources: k8s.#Resources
-	
+
 		// Optional node selector for pod placement
 		nodeSelector?: [string]: string
-	
+
 		// Namespace can be overridden by environment
 		namespace?: string
 
 		// Labels can be extended or overridden by environment
 		labels?: [string]: string
+
+		// Additional envFrom sources to append to defaults
+		// Environments specify additional sources here, not the complete list
+		// Defaults to empty list if not specified
+		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
 	}
 
 	// appConfig is a constraint that environment files must satisfy
@@ -62,6 +85,9 @@ foo: {
 			...            // Allow environments to add or override
 		}
 	}
+
+	// envFrom combines defaults with environment-specific additions
+	envFrom: list.Concat([defaultEnvFrom, appConfig.additionalEnvFrom])
 	
 	// deployment defines the actual Kubernetes Deployment resource
 	// It uses #Deployment schema from deployment.cue and fills in all
@@ -69,6 +95,7 @@ foo: {
 	// for instance-specific values
 	deployment: k8s.#Deployment & {
 		let ns = appConfig.namespace
+		let sources = envFrom
 		metadata: {
 			name:      appName
 			namespace: ns
@@ -122,6 +149,11 @@ foo: {
 							protocol:      "TCP"
 						}]
 	
+
+						// Environment variable sources from ConfigMaps and Secrets
+						// Pulls all keys from the referenced resources
+						// Combined defaults + env additions
+						envFrom: sources
 						// Application-specific environment variables
 						// Mix of direct values and references to secrets
 						env: [

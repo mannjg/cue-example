@@ -73,6 +73,13 @@ spec:
                 configMapKeyRef:
                   name: foo-config
                   key: log-level
+          envFrom:
+            - configMapRef:
+                name: foo-config
+            - secretRef:
+                name: foo-secrets
+            - configMapRef:
+                name: shared-production-config
           imagePullPolicy: Always
           livenessProbe:
             httpGet:

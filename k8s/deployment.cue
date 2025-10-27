@@ -59,6 +59,7 @@ package k8s
 	image: string
 	ports?: [...#ContainerPort]
 	env?: [...#EnvVar]
+	envFrom?: [...#EnvFromSource]
 	volumeMounts?: [...#VolumeMount]
 	resources?:         #Resources
 	livenessProbe?:     #Probe
@@ -97,6 +98,24 @@ package k8s
 	}
 	fieldRef?: {
 		fieldPath: string
+	}
+}
+
+// #EnvFromSource defines a source to populate environment variables from
+#EnvFromSource: {
+	// Optional prefix to prepend to variable names
+	prefix?: string
+
+	// Reference to a ConfigMap
+	configMapRef?: {
+		name:      string
+		optional?: bool
+	}
+
+	// Reference to a Secret
+	secretRef?: {
+		name:      string
+		optional?: bool
 	}
 }
 

@@ -49,6 +49,15 @@ foo: {
 			environment: "production"  // Additional label for production
 			tier:        "critical"     // Mark as critical tier
 		}
+
+		// Extend envFrom with production-specific shared config
+		additionalEnvFrom: [
+			{
+				configMapRef: {
+					name: "shared-production-config"
+				}
+			},
+		]
 	}
 
 	// Production-specific overrides for foo deployment

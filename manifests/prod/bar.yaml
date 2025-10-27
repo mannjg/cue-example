@@ -69,6 +69,11 @@ spec:
                 configMapKeyRef:
                   name: bar-config
                   key: log-level
+          envFrom:
+            - configMapRef:
+                name: bar-config
+            - secretRef:
+                name: bar-secrets
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
