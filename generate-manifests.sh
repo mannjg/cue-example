@@ -12,6 +12,7 @@ cd "$SCRIPT_DIR"
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Define apps and environments
@@ -40,7 +41,20 @@ for env in "${ENVS[@]}"; do
         echo -e "${BLUE}[$current/$total] Generating $env/$app.yaml...${NC}"
 
         # Query the app's resources_list from CUE
-        resources_json=$(cue export "./envs/$env.cue" -e "$app.resources_list" --out json 2>/dev/null | tr -d '\n' || echo "[]")
+        echo "  → Querying: cue export ./envs/$env.cue -e $app.resources_list --out json"
+        resources_json=$(cue export "./envs/$env.cue" -e "$app.resources_list" --out json 2>&1 | tr -d '\n')
+
+        # Check if cue export failed
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ Error querying resources_list for $app in $env:${NC}"
+            echo -e "${RED}  $resources_json${NC}"
+            resources_json="[]"
+        fi
+
+        # Handle empty or error output
+        if [ -z "$resources_json" ] || [ "$resources_json" = "null" ]; then
+            resources_json="[]"
+        fi
 
         # Parse JSON array into bash array
         # Remove brackets, quotes, and whitespace, split by comma
@@ -59,10 +73,22 @@ for env in "${ENVS[@]}"; do
 
         # Export app-specific resources
         if [ -n "$export_flags" ]; then
-            cue export "./envs/$env.cue" $export_flags --out yaml > "manifests/$env/$app.yaml"
-            echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
+            echo "  → Exporting: cue export ./envs/$env.cue $export_flags --out yaml"
+            export_output=$(cue export "./envs/$env.cue" $export_flags --out yaml 2>&1)
+            export_status=$?
+
+            if [ $export_status -eq 0 ]; then
+                echo "$export_output" > "manifests/$env/$app.yaml"
+                echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
+            else
+                echo -e "${RED}✗ Error exporting resources for $app in $env:${NC}"
+                echo -e "${RED}$export_output${NC}"
+                exit 1
+            fi
         else
-            echo -e "${YELLOW}⚠ No resources defined for $app, skipping${NC}"
+            echo -e "${YELLOW}⚠ No resources defined for $app in $env${NC}"
+            echo -e "${YELLOW}  Check that $app.resources_list exists in ./envs/$env.cue${NC}"
+            echo -e "${YELLOW}  Or verify the app definition is present for this environment${NC}"
         fi
     done
 done
