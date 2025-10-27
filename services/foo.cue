@@ -73,6 +73,12 @@ foo: {
 		// Environments specify additional sources here, not the complete list
 		// Defaults to empty list if not specified
 		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
+
+		// Volume source names - can be overridden per environment
+		volumeSourceNames?: {
+			configMapName?: string
+			secretName?:    string
+		}
 	}
 
 	// appConfig is a constraint that environment files must satisfy
@@ -86,6 +92,16 @@ foo: {
 		}
 	}
 
+	// Volume source names with defaults that can be overridden by environments
+	volumeSourceNames: {
+		configMapName: *"\(appName)-config" | string
+		secretName:    *"\(appName)-secrets" | string
+	}
+	// Merge environment-specific overrides if provided
+	if appConfig.volumeSourceNames != _|_ {
+		volumeSourceNames: appConfig.volumeSourceNames
+	}
+
 	// envFrom combines defaults with environment-specific additions
 	envFrom: list.Concat([defaultEnvFrom, appConfig.additionalEnvFrom])
 	
@@ -95,7 +111,7 @@ foo: {
 	// for instance-specific values
 	deployment: k8s.#Deployment & {
 		let ns = appConfig.namespace
-		let sources = envFrom
+		let envFromSources = envFrom
 		metadata: {
 			name:      appName
 			namespace: ns
@@ -153,7 +169,7 @@ foo: {
 						// Environment variable sources from ConfigMaps and Secrets
 						// Pulls all keys from the referenced resources
 						// Combined defaults + env additions
-						envFrom: sources
+						envFrom: envFromSources
 						// Application-specific environment variables
 						// Mix of direct values and references to secrets
 						env: [
@@ -224,6 +240,11 @@ foo: {
 								mountPath: "/var/cache/myapp"
 								readOnly:  false
 							},
+							{
+								name:      "projected-secrets"
+								mountPath: "/var/secrets"
+								readOnly:  true
+							},
 						]
 	
 						// Instance-specific: provided by env files
@@ -286,6 +307,58 @@ foo: {
 							emptyDir: {
 								medium: "Memory"
 								sizeLimit: "256Mi"
+							}
+						},
+						{
+							name: "projected-secrets"
+							projected: {
+								defaultMode: 0o400
+								sources: [
+									{
+										secret: {
+											name: volumeSourceNames.secretName
+											items: [
+												{
+													key:  "db-user"
+													path: "database/username"
+												},
+												{
+													key:  "db-password"
+													path: "database/password"
+												},
+											]
+										}
+									},
+									{
+										configMap: {
+											name: volumeSourceNames.configMapName
+											items: [
+												{
+													key:  "redis-url"
+													path: "config/redis-url"
+												},
+											]
+										}
+									},
+									{
+										downwardAPI: {
+											items: [
+												{
+													path: "pod/name"
+													fieldRef: {
+														fieldPath: "metadata.name"
+													}
+												},
+												{
+													path: "pod/namespace"
+													fieldRef: {
+														fieldPath: "metadata.namespace"
+													}
+												},
+											]
+										}
+									},
+								]
 							}
 						},
 					]

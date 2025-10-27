@@ -152,6 +152,53 @@ package k8s
 		medium?:    string
 		sizeLimit?: string
 	}
+	projected?: {
+		sources: [...#ProjectedVolumeSource]
+		defaultMode?: int
+	}
+}
+
+// #ProjectedVolumeSource defines a source for a projected volume
+#ProjectedVolumeSource: {
+	// Only one of these should be specified
+	secret?: {
+		name: string
+		items?: [...{
+			key:  string
+			path: string
+			mode?: int
+		}]
+		optional?: bool
+	}
+	configMap?: {
+		name: string
+		items?: [...{
+			key:  string
+			path: string
+			mode?: int
+		}]
+		optional?: bool
+	}
+	downwardAPI?: {
+		items: [...{
+			path: string
+			fieldRef?: {
+				fieldPath:  string
+				apiVersion?: string
+			}
+			resourceFieldRef?: {
+				containerName: string
+				resource:      string
+				divisor?:      string
+			}
+			mode?: int
+		}]
+	}
+	serviceAccountToken?: {
+		path:              string
+		expirationSeconds?: int
+		audience?:         string
+	}
 }
 
 // #Resources defines resource requests and limits

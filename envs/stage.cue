@@ -33,6 +33,12 @@ foo: appConfig: {
 
 	// Staging namespace
 	namespace: "staging"
+
+	// Override volume source names for staging environment
+	volumeSourceNames: {
+		configMapName: "foo-stage-config"
+		secretName:    "foo-stage-secrets"
+	}
 }
 
 // Staging environment configuration for bar app

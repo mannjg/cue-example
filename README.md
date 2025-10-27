@@ -46,7 +46,7 @@ The configuration follows a layered architecture with progressive refinement:
 Defines reusable Kubernetes resource schemas:
 - `#Deployment` - Complete Deployment resource structure
 - `#Container` - Container specification
-- `#Volume` - Volume definitions (PVC, ConfigMap, Secret, EmptyDir)
+- `#Volume` - Volume definitions (PVC, ConfigMap, Secret, EmptyDir, Projected)
 - `#Resources` - CPU and memory requests/limits
 - `#Probe` - Health check probes
 - Other supporting schemas

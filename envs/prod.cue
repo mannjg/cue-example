@@ -58,6 +58,12 @@ foo: {
 				}
 			},
 		]
+
+		// Override volume source names for production environment
+		volumeSourceNames: {
+			configMapName: "foo-prod-config"
+			secretName:    "foo-prod-secrets"
+		}
 	}
 
 	// Production-specific overrides for foo deployment
@@ -132,6 +138,12 @@ bar: {
 		nodeSelector: {
 			"environment": "production"
 			"workload":    "application"
+		}
+
+		// Override volume source names for production environment
+		volumeSourceNames: {
+			configMapName: "bar-prod-config"
+			secretName:    "bar-prod-secrets"
 		}
 	}
 

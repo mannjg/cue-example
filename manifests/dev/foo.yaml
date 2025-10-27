@@ -110,6 +110,9 @@ spec:
             - name: cache
               mountPath: /var/cache/myapp
               readOnly: false
+            - name: projected-secrets
+              mountPath: /var/secrets
+              readOnly: true
           securityContext:
             runAsGroup: 1000
             runAsNonRoot: true
@@ -130,6 +133,30 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 256Mi
+        - name: projected-secrets
+          projected:
+            defaultMode: 256
+            sources:
+              - secret:
+                  name: foo-secrets
+                  items:
+                    - key: db-user
+                      path: database/username
+                    - key: db-password
+                      path: database/password
+              - configMap:
+                  name: foo-config
+                  items:
+                    - key: redis-url
+                      path: config/redis-url
+              - downwardAPI:
+                  items:
+                    - path: pod/name
+                      fieldRef:
+                        fieldPath: metadata.name
+                    - path: pod/namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
       securityContext:
         runAsGroup: 1000
         runAsNonRoot: true
