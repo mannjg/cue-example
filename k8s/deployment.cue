@@ -15,7 +15,7 @@ package k8s
 // #Metadata defines common Kubernetes metadata
 #Metadata: {
 	name:      string
-	namespace: string | *"default"
+	namespace: string  // No default - apps provide their own defaults
 	labels?: [string]:      string
 	annotations?: [string]: string
 }

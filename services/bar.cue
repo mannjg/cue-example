@@ -13,6 +13,11 @@ bar: {
 	// Change this value to customize for a different application
 	appName: "bar"
 
+	// defaultNamespace is the app-level default namespace
+	// Can be overridden by environment files via appConfig.namespace
+	// If not overridden, uses this value; if this is not set, falls back to k8s schema default "default"
+	defaultNamespace: "bar-namespace"
+
 	// resources_list defines which Kubernetes resources this app includes
 	// This list is used by generate-manifests.sh to dynamically export resources
 	resources_list: ["deployment", "service", "configmap"]
@@ -32,14 +37,15 @@ bar: {
 		// Optional node selector for pod placement
 		nodeSelector?: [string]: string
 	
-		// Optional custom namespace (can override default)
+		// Namespace can be overridden by environment
 		namespace?: string
 	}
-	
+
 	// appConfig is a constraint that environment files must satisfy
-	// The constraint limits replicas to a reasonable range
+	// The constraint limits replicas to a reasonable range and provides app-level namespace default
 	appConfig: #AppConfig & {
-		replicas: >=1 & <=10
+		replicas:  >=1 & <=10
+		namespace: string | *defaultNamespace
 	}
 	
 	// deployment defines the actual Kubernetes Deployment resource
@@ -47,12 +53,10 @@ bar: {
 	// application-specific configuration while referencing appConfig
 	// for instance-specific values
 	deployment: k8s.#Deployment & {
+		let ns = appConfig.namespace
 		metadata: {
-			name: appName
-			// Use namespace from appConfig if provided, otherwise default
-			if appConfig.namespace != _|_ {
-				namespace: appConfig.namespace
-			}
+			name:      appName
+			namespace: ns
 			labels: {
 				app:       appName
 				component: "backend"
@@ -270,12 +274,10 @@ bar: {
 	// service defines the Kubernetes Service resource
 	// Exposes the application deployment via a ClusterIP service
 	service: k8s.#Service & {
+		let ns = appConfig.namespace
 		metadata: {
-			name: appName
-			// Use same namespace as deployment
-			if appConfig.namespace != _|_ {
-				namespace: appConfig.namespace
-			}
+			name:      appName
+			namespace: ns
 			labels: {
 				app:       appName
 				component: "backend"
@@ -308,12 +310,10 @@ bar: {
 	// configmap defines a Kubernetes ConfigMap resource
 	// Stores non-sensitive application configuration data
 	configmap: k8s.#ConfigMap & {
+		let ns = appConfig.namespace
 		metadata: {
-			name: "\(appName)-config"
-			// Use same namespace as deployment
-			if appConfig.namespace != _|_ {
-				namespace: appConfig.namespace
-			}
+			name:      "\(appName)-config"
+			namespace: ns
 			labels: {
 				app:       appName
 				component: "backend"
