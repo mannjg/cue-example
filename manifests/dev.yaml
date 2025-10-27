@@ -1,145 +1,154 @@
-appConfig:
-  image: myapp:dev-latest
-  replicas: 1
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 200m
-      memory: 256Mi
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
   namespace: dev
-deployment:
-  apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    name: myapp
-    namespace: dev
-    labels:
+  labels:
+    app: myapp
+    component: backend
+    managed: cue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
       app: myapp
       component: backend
-      managed: cue
-  spec:
-    replicas: 1
-    selector:
-      matchLabels:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
         app: myapp
         component: backend
-    strategy:
-      type: RollingUpdate
-      rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
-    template:
-      metadata:
-        labels:
-          app: myapp
-          component: backend
-          managed: cue
-        annotations:
-          prometheus.io/scrape: "true"
-          prometheus.io/port: "8080"
-          prometheus.io/path: /metrics
-      spec:
-        containers:
-          - name: myapp
-            image: myapp:dev-latest
-            env:
-              - name: APP_ENV
-                value: production
-              - name: APP_PORT
-                value: "8080"
-              - name: DATABASE_HOST
-                value: postgres.database.svc.cluster.local
-              - name: DATABASE_PORT
-                value: "5432"
-              - name: DATABASE_NAME
-                value: myapp
-              - name: DATABASE_USER
-                valueFrom:
-                  secretKeyRef:
-                    name: myapp-secrets
-                    key: db-user
-              - name: DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: myapp-secrets
-                    key: db-password
-              - name: REDIS_URL
-                valueFrom:
-                  configMapKeyRef:
-                    name: myapp-config
-                    key: redis-url
-              - name: LOG_LEVEL
-                valueFrom:
-                  configMapKeyRef:
-                    name: myapp-config
-                    key: log-level
-            imagePullPolicy: Always
-            livenessProbe:
-              httpGet:
-                path: /health/live
-                port: 8080
-                scheme: HTTP
-              initialDelaySeconds: 30
-              periodSeconds: 10
-              timeoutSeconds: 5
-              successThreshold: 1
-              failureThreshold: 3
-            ports:
-              - name: http
-                containerPort: 8080
-                protocol: TCP
-            readinessProbe:
-              httpGet:
-                path: /health/ready
-                port: 8080
-                scheme: HTTP
-              initialDelaySeconds: 10
-              periodSeconds: 5
-              timeoutSeconds: 3
-              successThreshold: 1
-              failureThreshold: 3
-            resources:
-              requests:
-                cpu: 100m
-                memory: 128Mi
-              limits:
-                cpu: 200m
-                memory: 256Mi
-            volumeMounts:
-              - name: data
-                mountPath: /var/lib/myapp/data
-                readOnly: false
-              - name: config
-                mountPath: /etc/myapp/config
-                readOnly: true
-              - name: cache
-                mountPath: /var/cache/myapp
-                readOnly: false
-            securityContext:
-              runAsGroup: 1000
-              runAsNonRoot: true
-              runAsUser: 1000
-              readOnlyRootFilesystem: false
-              allowPrivilegeEscalation: false
-              capabilities:
-                drop:
-                  - ALL
-        volumes:
-          - name: data
-            persistentVolumeClaim:
-              claimName: myapp-data
-          - name: config
-            configMap:
-              name: myapp-config
-          - name: cache
-            emptyDir:
-              medium: Memory
-              sizeLimit: 256Mi
-        securityContext:
-          runAsGroup: 1000
-          runAsNonRoot: true
-          runAsUser: 1000
-          fsGroup: 1000
-        serviceAccountName: myapp
+        managed: cue
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: myapp
+          image: myapp:dev-latest
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_PORT
+              value: "8080"
+            - name: DATABASE_HOST
+              value: postgres.database.svc.cluster.local
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: myapp
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secrets
+                  key: db-user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secrets
+                  key: db-password
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-config
+                  key: redis-url
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-config
+                  key: log-level
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/myapp/data
+              readOnly: false
+            - name: config
+              mountPath: /etc/myapp/config
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/myapp
+              readOnly: false
+          securityContext:
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: myapp-data
+        - name: config
+          configMap:
+            name: myapp-config
+        - name: cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      serviceAccountName: myapp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+  namespace: dev
+  labels:
+    app: myapp
+    component: backend
+    managed: cue
+spec:
+  type: ClusterIP
+  selector:
+    app: myapp
+    component: backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  sessionAffinity: None

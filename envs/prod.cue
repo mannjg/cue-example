@@ -2,10 +2,12 @@
 // This file contains concrete values for production instances
 package envs
 
-import svc "example.com/cue-example/services"
+import (
+	"example.com/cue-example/services"
+)
 
-// Import the services package to get deployment and appConfig schema
-svc
+// Import all from services to get deployment definition
+services
 
 // Production environment configuration
 // Optimized for reliability, performance, and high availability
@@ -46,6 +48,7 @@ appConfig: {
 
 // Production-specific overrides to base deployment configuration
 // These could include additional production requirements
+// Since services is already imported above, we can directly override deployment fields
 deployment: {
 	// Add production-specific annotations
 	metadata: annotations: {

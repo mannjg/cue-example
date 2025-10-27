@@ -255,3 +255,41 @@ deployment: k8s.#Deployment & {
 		}
 	}
 }
+
+// service defines the Kubernetes Service resource
+// Exposes the application deployment via a ClusterIP service
+service: k8s.#Service & {
+	metadata: {
+		name: "myapp"
+		// Use same namespace as deployment
+		if appConfig.namespace != _|_ {
+			namespace: appConfig.namespace
+		}
+		labels: {
+			app:       "myapp"
+			component: "backend"
+			managed:   "cue"
+		}
+	}
+
+	spec: {
+		type: "ClusterIP"
+
+		// Select pods with matching labels
+		selector: {
+			app:       "myapp"
+			component: "backend"
+		}
+
+		// Expose HTTP port
+		ports: [{
+			name:       "http"
+			protocol:   "TCP"
+			port:       80
+			targetPort: 8080
+		}]
+
+		// Sticky sessions based on client IP
+		sessionAffinity: "None"
+	}
+}

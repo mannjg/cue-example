@@ -2,10 +2,12 @@
 // This file contains concrete values for development instances
 package envs
 
-import svc "example.com/cue-example/services"
+import (
+	"example.com/cue-example/services"
+)
 
-// Import the services package to get deployment and appConfig schema
-svc
+// Import all from services to get deployment definition
+services
 
 // Development environment configuration
 // Optimized for fast iteration and minimal resource usage
