@@ -137,6 +137,14 @@ import (
 			configMapName?: string
 			secretName?:    string
 		}
+
+		// Optional liveness probe override
+		// Apps or environments can override the entire probe or specific fields
+		livenessProbe?: k8s.#Probe
+
+		// Optional readiness probe override
+		// Apps or environments can override the entire probe or specific fields
+		readinessProbe?: k8s.#Probe
 	}
 
 	// appConfig is a constraint that environment files must satisfy
@@ -246,7 +254,9 @@ import (
 
 						resources: appConfig.resources
 
-						livenessProbe: {
+						// Liveness probe with overridable defaults
+						// Apps or environments can override via appConfig.livenessProbe
+						livenessProbe: appConfig.livenessProbe | *{
 							httpGet: {
 								path:   "/health/live"
 								port:   8080
@@ -258,7 +268,9 @@ import (
 							failureThreshold:    3
 						}
 
-						readinessProbe: {
+						// Readiness probe with overridable defaults
+						// Apps or environments can override via appConfig.readinessProbe
+						readinessProbe: appConfig.readinessProbe | *{
 							httpGet: {
 								path:   "/health/ready"
 								port:   8080
