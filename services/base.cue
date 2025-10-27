@@ -167,13 +167,21 @@ import (
 	}
 
 	// Volume source names with defaults that can be overridden by environments
-	volumeSourceNames: {
+	// Default values are merged with any overrides from appConfig
+	#DefaultVolumeSourceNames: {
 		configMapName: *"\(appName)-config" | string
 		secretName:    *"\(appName)-secrets" | string
 	}
-	// Merge environment-specific overrides if provided
-	if appConfig.volumeSourceNames != _|_ {
-		volumeSourceNames: appConfig.volumeSourceNames
+
+	volumeSourceNames: #DefaultVolumeSourceNames & {
+		if appConfig.volumeSourceNames != _|_ {
+			if appConfig.volumeSourceNames.configMapName != _|_ {
+				configMapName: appConfig.volumeSourceNames.configMapName
+			}
+			if appConfig.volumeSourceNames.secretName != _|_ {
+				secretName: appConfig.volumeSourceNames.secretName
+			}
+		}
 	}
 
 	// envFrom combines defaults with environment-specific additions
