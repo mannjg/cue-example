@@ -75,85 +75,24 @@ import (
 	// appName must be provided by the app
 	appName: string
 
-	// defaultNamespace is the app-level default namespace
+	// appNamespace is the app-level default namespace
 	// Can be overridden by environment files via appConfig.namespace
-	defaultNamespace: string | *"\(appName)-namespace"
+	appNamespace: string | *"\(appName)-namespace"
 
 	// defaultLabels defines the app-level default labels applied to all resources
 	// Can be extended or overridden by environment files via appConfig.labels
 	defaultLabels: {
-		app:       appName
-		component: "backend"
-		managed:   "cue"
+		app:        appName
+		deployment: appName
 	}
 
 	// defaultEnvFrom defines the app-level default environment variable sources
 	// Can be extended by environment files via appConfig.envFrom
-	defaultEnvFrom: [
-		{
-			configMapRef: {
-				name: "\(appName)-config"
-			}
-		},
-		{
-			secretRef: {
-				name: "\(appName)-secrets"
-			}
-		},
-	]
+	defaultEnvFrom: []
 
 	// defaultEnv defines the app-level default individual environment variables
 	// Can be extended by apps or environments via appConfig.additionalEnv
-	defaultEnv: [
-		{
-			name:  "APP_ENV"
-			value: "production"
-		},
-		{
-			name:  "APP_PORT"
-			value: "8080"
-		},
-		{
-			name:  "DATABASE_HOST"
-			value: "postgres.database.svc.cluster.local"
-		},
-		{
-			name:  "DATABASE_PORT"
-			value: "5432"
-		},
-		{
-			name:  "DATABASE_NAME"
-			value: appName
-		},
-		{
-			name: "DATABASE_USER"
-			valueFrom: secretKeyRef: {
-				name: "\(appName)-secrets"
-				key:  "db-user"
-			}
-		},
-		{
-			name: "DATABASE_PASSWORD"
-			valueFrom: secretKeyRef: {
-				name: "\(appName)-secrets"
-				key:  "db-password"
-			}
-		},
-		{
-			name: "REDIS_URL"
-			valueFrom: configMapKeyRef: {
-				name: "\(appName)-config"
-				key:  "redis-url"
-			}
-		},
-		{
-			name: "LOG_LEVEL"
-			valueFrom: configMapKeyRef: {
-				name: "\(appName)-config"
-				key:  "log-level"
-			}
-		},
-	]
+	defaultEnv: []
 
 	// resources_list defines which Kubernetes resources this app includes
 	// This list is used by generate-manifests.sh to dynamically export resources
@@ -164,10 +103,11 @@ import (
 	// The constraint limits replicas to a reasonable range and provides app-level defaults
 	appConfig: #AppConfig & {
 		replicas:  >=1 & <=10
-		namespace: string | *defaultNamespace
+		namespace: string | *appNamespace
 		labels: {
-			defaultLabels  // Include default labels
-			...            // Allow environments to add or override
+			defaultLabels // Include default labels
+
+			... // Allow environments to add or override
 		}
 	}
 
