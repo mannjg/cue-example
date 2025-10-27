@@ -10,8 +10,67 @@ import (
 // #AppBase defines the complete application configuration template
 // Apps instantiate this with their specific appName and customizations
 #AppBase: {
-	// Allow apps to add additional fields (e.g., configmap for bar)
-	...
+
+	// #AppConfig defines the schema for instance-specific configuration
+	// These values must be provided by environment files (dev.cue, stage.cue, prod.cue)
+	#AppConfig: {
+		// Container image with tag (e.g., "myapp:v1.2.3")
+		image: string
+
+		// Number of pod replicas
+		replicas: int & >=1
+
+		// Resource requests and limits
+		resources: k8s.#Resources
+
+		// Optional node selector for pod placement
+		nodeSelector?: [string]: string
+
+		// Namespace can be overridden by environment
+		namespace?: string
+
+		// Labels can be extended or overridden by environment
+		labels?: [string]: string
+
+		// Additional envFrom sources to append to defaults
+		// Environments specify additional sources here, not the complete list
+		// Defaults to empty list if not specified
+		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
+
+		// Additional individual env vars to append to defaults
+		// Apps or environments specify additional vars here, not the complete list
+		// Defaults to empty list if not specified
+		additionalEnv: [...k8s.#EnvVar] | *[]
+
+		// Volume source names - can be overridden per environment
+		volumeSourceNames?: {
+			configMapName?: string
+			secretName?:    string
+		}
+
+		// Optional liveness probe override
+		// Apps or environments can override the entire probe or specific fields
+		livenessProbe?: k8s.#Probe
+
+		// Optional readiness probe override
+		// Apps or environments can override the entire probe or specific fields
+		readinessProbe?: k8s.#Probe
+
+		// Optional container ports override
+		// Apps or environments can override to expose different/additional ports
+		containerPorts?: [...k8s.#ContainerPort]
+
+		// Optional service ports override
+		// Apps or environments can override to expose different service ports
+		servicePorts?: [...k8s.#ServicePort]
+	}
+
+	// Volume source names with defaults that can be overridden by environments
+	// Default values are merged with any overrides from appConfig
+	#DefaultVolumeSourceNames: {
+		configMapName: *"\(appName)-config" | string
+		secretName:    *"\(appName)-secrets" | string
+	}
 
 	// appName must be provided by the app
 	appName: string
@@ -101,60 +160,6 @@ import (
 	// Default includes deployment and service; apps can override to add more (e.g., configmap)
 	resources_list: [...string] | *["deployment", "service"]
 
-	// #AppConfig defines the schema for instance-specific configuration
-	// These values must be provided by environment files (dev.cue, stage.cue, prod.cue)
-	#AppConfig: {
-		// Container image with tag (e.g., "myapp:v1.2.3")
-		image: string
-
-		// Number of pod replicas
-		replicas: int & >=1
-
-		// Resource requests and limits
-		resources: k8s.#Resources
-
-		// Optional node selector for pod placement
-		nodeSelector?: [string]: string
-
-		// Namespace can be overridden by environment
-		namespace?: string
-
-		// Labels can be extended or overridden by environment
-		labels?: [string]: string
-
-		// Additional envFrom sources to append to defaults
-		// Environments specify additional sources here, not the complete list
-		// Defaults to empty list if not specified
-		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
-
-		// Additional individual env vars to append to defaults
-		// Apps or environments specify additional vars here, not the complete list
-		// Defaults to empty list if not specified
-		additionalEnv: [...k8s.#EnvVar] | *[]
-
-		// Volume source names - can be overridden per environment
-		volumeSourceNames?: {
-			configMapName?: string
-			secretName?:    string
-		}
-
-		// Optional liveness probe override
-		// Apps or environments can override the entire probe or specific fields
-		livenessProbe?: k8s.#Probe
-
-		// Optional readiness probe override
-		// Apps or environments can override the entire probe or specific fields
-		readinessProbe?: k8s.#Probe
-
-		// Optional container ports override
-		// Apps or environments can override to expose different/additional ports
-		containerPorts?: [...k8s.#ContainerPort]
-
-		// Optional service ports override
-		// Apps or environments can override to expose different service ports
-		servicePorts?: [...k8s.#ServicePort]
-	}
-
 	// appConfig is a constraint that environment files must satisfy
 	// The constraint limits replicas to a reasonable range and provides app-level defaults
 	appConfig: #AppConfig & {
@@ -164,13 +169,6 @@ import (
 			defaultLabels  // Include default labels
 			...            // Allow environments to add or override
 		}
-	}
-
-	// Volume source names with defaults that can be overridden by environments
-	// Default values are merged with any overrides from appConfig
-	#DefaultVolumeSourceNames: {
-		configMapName: *"\(appName)-config" | string
-		secretName:    *"\(appName)-secrets" | string
 	}
 
 	volumeSourceNames: #DefaultVolumeSourceNames & {
@@ -432,4 +430,7 @@ import (
 			sessionAffinity: "None"
 		}
 	}
+
+	// Allow apps to add additional fields (e.g., configmap for bar)
+	...
 }
