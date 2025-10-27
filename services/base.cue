@@ -122,11 +122,11 @@ import (
 		}
 	}
 
-	// envFrom combines defaults with environment-specific additions
-	envFrom: list.Concat([defaultEnvFrom, appConfig.additionalEnvFrom])
-
 	// env combines default individual vars with app/environment-specific additions
 	env: list.Concat([defaultEnv, appConfig.additionalEnv])
+
+	// envFrom combines defaults with environment-specific additions
+	envFrom: list.Concat([defaultEnvFrom, appConfig.additionalEnvFrom])
 
 	// deployment defines the actual Kubernetes Deployment resource
 	deployment: k8s.#Deployment & {
@@ -142,27 +142,11 @@ import (
 		spec: {
 			replicas: appConfig.replicas
 
-			selector: matchLabels: {
-				app:       appName
-				component: "backend"
-			}
-
-			strategy: {
-				type: "RollingUpdate"
-				rollingUpdate: {
-					maxSurge:       1
-					maxUnavailable: 0
-				}
-			}
+			selector: matchLabels: appConfig.labels
 
 			template: {
 				metadata: {
 					labels: appConfig.labels
-					annotations: {
-						"prometheus.io/scrape": "true"
-						"prometheus.io/port":   "8080"
-						"prometheus.io/path":   "/metrics"
-					}
 				}
 
 				spec: {
@@ -170,6 +154,15 @@ import (
 						name:            appName
 						image:           appConfig.image
 						imagePullPolicy: "Always"
+
+						// Application-specific environment variables
+						// Combines defaultEnv with app/environment-specific additionalEnv
+						if len(envVars) > 0 {
+							env: envVars
+						}
+
+						// Environment variable sources from ConfigMaps and Secrets
+						envFrom: envFromSources
 
 						// Container ports with overridable defaults
 						// Apps or environments can override via appConfig.containerPorts
@@ -179,12 +172,6 @@ import (
 							protocol:      "TCP"
 						}]
 
-						// Environment variable sources from ConfigMaps and Secrets
-						envFrom: envFromSources
-
-						// Application-specific environment variables
-						// Combines defaultEnv with app/environment-specific additionalEnv
-						env: envVars
 						volumeMounts: [
 							{
 								name:      "data"
