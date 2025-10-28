@@ -142,8 +142,8 @@ import "example.com/cue-example/k8s"
 
 	// Cache volume settings
 	cacheVolumeSettings?: {
-		medium:    *"Memory" | ""|string
-		sizeLimit: string | *"256Mi"
+		medium:    string | *#DefaultCacheVolumeSettings.medium
+		sizeLimit: string | *#DefaultCacheVolumeSettings.sizeLimit
 	}
 
 	// Enable projected secrets volume
@@ -155,26 +155,19 @@ import "example.com/cue-example/k8s"
 		secretItems: [...{
 			key:  string
 			path: string
-		}] | *[
-			{key: "db-user", path: "database/username"},
-			{key: "db-password", path: "database/password"},
-		]
+		}] | *#DefaultProjectedSecretItems
 
 		// ConfigMap items to project
 		configMapItems: [...{
 			key:  string
 			path: string
-		}] | *[
-			{key: "redis-url", path: "config/redis-url"},
-		]
+		}] | *#DefaultProjectedConfigMapItems
 
 		// Cluster CA ConfigMap items to project
 		clusterCAItems: [...{
 			key:  string
 			path: string
-		}] | *[
-			{key: "ca.crt", path: "config/cluster-ca.crt"},
-		]
+		}] | *#DefaultProjectedClusterCAItems
 
 		// Include downward API
 		includeDownwardAPI: bool | *true

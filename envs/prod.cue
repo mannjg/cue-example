@@ -19,16 +19,7 @@ _envDefaults: {
 	replicas:           3
 
 	// Production-grade resources
-	resources: {
-		requests: {
-			cpu:    "500m"
-			memory: "1Gi"
-		}
-		limits: {
-			cpu:    "1000m"
-			memory: "2Gi"
-		}
-	}
+	resources: svc.#DefaultProductionResources
 
 	// Node selector for production nodes
 	nodeSelector: {
@@ -37,10 +28,7 @@ _envDefaults: {
 	}
 
 	// Production-specific labels
-	labels: {
-		environment: "production"
-		tier:        "critical"
-	}
+	labels: svc.#DefaultProductionLabels
 
 	// Production-specific envFrom
 	additionalEnvFrom: [
@@ -52,13 +40,7 @@ _envDefaults: {
 	]
 
 	// More conservative rolling update strategy for production
-	deploymentStrategy: {
-		type: "RollingUpdate"
-		rollingUpdate: {
-			maxSurge:       1
-			maxUnavailable: 0  // Zero downtime deployments
-		}
-	}
+	deploymentStrategy: svc.#DefaultProductionDeploymentStrategy
 }
 
 // Production environment configuration for foo app

@@ -19,16 +19,7 @@ _envDefaults: {
 	replicas:           2
 
 	// Common staging resource limits - production-like but more conservative
-	resources: {
-		requests: {
-			cpu:    "250m"
-			memory: "512Mi"
-		}
-		limits: {
-			cpu:    "500m"
-			memory: "1Gi"
-		}
-	}
+	resources: svc.#DefaultStageResources
 }
 
 // Staging environment configuration for foo app

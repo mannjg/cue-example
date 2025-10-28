@@ -19,16 +19,7 @@ _envDefaults: {
 	namespace:          "dev"
 
 	// Common development resource limits
-	resources: {
-		requests: {
-			cpu:    "100m"
-			memory: "128Mi"
-		}
-		limits: {
-			cpu:    "200m"
-			memory: "256Mi"
-		}
-	}
+	resources: svc.#DefaultDevResources
 }
 
 // Development environment configuration for foo app
