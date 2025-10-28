@@ -44,11 +44,11 @@ import (
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
 	_baseContainerPorts: [
-		{name: "http", containerPort: 8080, protocol: "TCP"},
+		#DefaultHttpContainerPort,
 	]
 	_debugContainerPorts: [...k8s.#ContainerPort]
 	if appConfig.debug {
-		_debugContainerPorts: [{name: "debug", containerPort: 5005, protocol: "TCP"}]
+		_debugContainerPorts: [#DefaultDebugContainerPort]
 	}
 	if !appConfig.debug {
 		_debugContainerPorts: []
@@ -87,12 +87,12 @@ import (
 
 	_cacheVolumes: [
 		if (_volumeConfig.enableCacheVolume | *true) {
-			let cacheSettings = _volumeConfig.cacheVolumeSettings | *{}
+			let cacheSettings = _volumeConfig.cacheVolumeSettings | *#DefaultCacheVolumeSettings
 			{
 				name: "cache"
 				emptyDir: {
-					medium:    cacheSettings.medium | *"Memory"
-					sizeLimit: cacheSettings.sizeLimit | *"256Mi"
+					medium:    cacheSettings.medium
+					sizeLimit: cacheSettings.sizeLimit
 				}
 			}
 		},
@@ -101,16 +101,9 @@ import (
 	_projectedSecretsVolumes: [
 		if (_volumeConfig.enableProjectedSecretsVolume | *true) {
 			let projConfig = _volumeConfig.projectedSecretsConfig | *{}
-			let secretItems = projConfig.secretItems | *[
-				{key: "db-user", path: "database/username"},
-				{key: "db-password", path: "database/password"},
-			]
-			let configMapItems = projConfig.configMapItems | *[
-				{key: "redis-url", path: "config/redis-url"},
-			]
-			let clusterCAItems = projConfig.clusterCAItems | *[
-				{key: "ca.crt", path: "config/cluster-ca.crt"},
-			]
+			let secretItems = projConfig.secretItems | *#DefaultProjectedSecretItems
+			let configMapItems = projConfig.configMapItems | *#DefaultProjectedConfigMapItems
+			let clusterCAItems = projConfig.clusterCAItems | *#DefaultProjectedClusterCAItems
 			let includeDownwardAPI = projConfig.includeDownwardAPI | *true
 
 			let volumeSourceNames = {
@@ -130,7 +123,7 @@ import (
 			{
 				name: "projected-secrets"
 				projected: {
-					defaultMode: 0o400
+					defaultMode: #DefaultProjectedVolumeMode
 					sources: [
 						if len(secretItems) > 0 {
 							secret: {
@@ -160,10 +153,7 @@ import (
 						},
 						if includeDownwardAPI {
 							downwardAPI: {
-								items: [
-									{path: "pod/name", fieldRef: fieldPath:        "metadata.name"},
-									{path: "pod/namespace", fieldRef: fieldPath:   "metadata.namespace"},
-								]
+								items: #DefaultDownwardAPIItems
 							}
 						},
 					]
@@ -185,25 +175,25 @@ import (
 
 	_dataVolumeMounts: [
 		if (_volumeConfig.enableDataVolume | *true) {
-			{name: "data", mountPath: "/var/lib/myapp/data", readOnly: false}
+			#DefaultDataVolumeMount
 		},
 	]
 
 	_configVolumeMounts: [
 		if (_volumeConfig.enableConfigVolume | *true) {
-			{name: "config", mountPath: "/etc/myapp/config", readOnly: true}
+			#DefaultConfigVolumeMount
 		},
 	]
 
 	_cacheVolumeMounts: [
 		if (_volumeConfig.enableCacheVolume | *true) {
-			{name: "cache", mountPath: "/var/cache/myapp", readOnly: false}
+			#DefaultCacheVolumeMount
 		},
 	]
 
 	_projectedSecretsVolumeMounts: [
 		if (_volumeConfig.enableProjectedSecretsVolume | *true) {
-			{name: "projected-secrets", mountPath: "/var/secrets", readOnly: true}
+			#DefaultProjectedSecretsVolumeMount
 		},
 	]
 
@@ -230,13 +220,7 @@ import (
 				strategy: appConfig.deploymentStrategy
 			}
 			if appConfig.deploymentStrategy == _|_ {
-				strategy: {
-					type: "RollingUpdate"
-					rollingUpdate: {
-						maxSurge:       1
-						maxUnavailable: 1
-					}
-				}
+				strategy: #DefaultDeploymentStrategy
 			}
 
 			template: {
@@ -266,41 +250,12 @@ import (
 						resources: appConfig.resources
 
 						// Liveness probe with smart defaults - merges user settings with defaults
-						_defaultLivenessProbe: {
-							httpGet: {
-								path:   "/health/live"
-								port:   8080
-								scheme: "HTTP"
-							}
-							initialDelaySeconds: 30
-							periodSeconds:       10
-							timeoutSeconds:      5
-							failureThreshold:    3
-						}
-						livenessProbe: _defaultLivenessProbe & (appConfig.livenessProbe | {})
+						livenessProbe: #DefaultLivenessProbe & (appConfig.livenessProbe | {})
 
 						// Readiness probe with smart defaults - merges user settings with defaults
-						_defaultReadinessProbe: {
-							httpGet: {
-								path:   "/health/ready"
-								port:   8080
-								scheme: "HTTP"
-							}
-							initialDelaySeconds: 10
-							periodSeconds:       5
-							timeoutSeconds:      3
-							failureThreshold:    3
-						}
-						readinessProbe: _defaultReadinessProbe & (appConfig.readinessProbe | {})
+						readinessProbe: #DefaultReadinessProbe & (appConfig.readinessProbe | {})
 
-						securityContext: {
-							runAsNonRoot:             true
-							runAsUser:                1000
-							runAsGroup:               1000
-							readOnlyRootFilesystem:   false
-							allowPrivilegeEscalation: false
-							capabilities: drop: ["ALL"]
-						}
+						securityContext: #DefaultContainerSecurityContext
 					}]
 
 					volumes: _volumes
@@ -317,12 +272,7 @@ import (
 						affinity: appConfig.affinity
 					}
 
-					securityContext: {
-						runAsNonRoot: true
-						runAsUser:    1000
-						runAsGroup:   1000
-						fsGroup:      1000
-					}
+					securityContext: #DefaultPodSecurityContext
 
 					serviceAccountName: appName
 				}

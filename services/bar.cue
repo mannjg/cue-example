@@ -12,7 +12,7 @@ bar: #App & {
 
 	// Bar includes a ConfigMap resource in addition to the standard resources
 	// Override resources_list to include it
-	resources_list: ["deployment", "service", "configmap"]
+	resources_list: #DefaultResourcesListWithConfigMap
 
 	// Add ConfigMap resource for bar
 	// This demonstrates how apps can extend the base template with additional resources
@@ -24,8 +24,8 @@ bar: #App & {
 		}
 
 		data: {
-			"redis-url": string | *"redis://redis.cache.svc.cluster.local:6379"
-			"log-level": string | *"info"
+			"redis-url": string | *#DefaultRedisURL
+			"log-level": string | *#DefaultLogLevel
 		}
 	}
 }

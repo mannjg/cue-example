@@ -35,23 +35,17 @@ import (
 		}
 
 		spec: {
-			type: "ClusterIP"
+			type: #DefaultServiceType
 
-			selector: {
-				app:       appName
-				component: "backend"
+			selector: #DefaultServiceSelector & {
+				app: appName
 			}
 
 			// Service ports - always include base ports, plus additional
-			_baseServicePorts: [{
-				name:       "http"
-				protocol:   "TCP"
-				port:       80
-				targetPort: 8080
-			}]
+			_baseServicePorts: [#DefaultHttpServicePort]
 			ports: list.Concat([_baseServicePorts, appConfig.additionalServicePorts])
 
-			sessionAffinity: "None"
+			sessionAffinity: #DefaultSessionAffinity
 		}
 	}
 }
@@ -85,21 +79,15 @@ import (
 			}
 
 			spec: {
-				type: "ClusterIP"
+				type: #DefaultServiceType
 
-				selector: {
-					app:       appName
-					component: "backend"
+				selector: #DefaultServiceSelector & {
+					app: appName
 				}
 
-				ports: [{
-					name:       "debug"
-					protocol:   "TCP"
-					port:       5005
-					targetPort: 5005
-				}]
+				ports: [#DefaultDebugServicePort]
 
-				sessionAffinity: "None"
+				sessionAffinity: #DefaultSessionAffinity
 			}
 		}
 	}

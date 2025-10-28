@@ -305,3 +305,36 @@ package services
 	component: "backend"
 	... // Allow additional selector fields
 }
+
+// Application Defaults
+//
+// This section contains default values for application configuration.
+
+// Default Namespace Suffix
+//
+// Standard suffix for application namespaces.
+// Usage: appNamespace: string | *"\(appName)-namespace"
+// This is a pattern, not a component, since it's parameterized by appName.
+
+#DefaultNamespaceSuffix: "-namespace"
+
+// Default Base Resources List
+//
+// The standard set of Kubernetes resources for a basic application.
+// Apps can extend this list with additional resources.
+
+#DefaultBaseResourcesList: ["deployment", "service"]
+
+// Default Resources List with ConfigMap
+//
+// Extended resources list for apps that need ConfigMaps.
+
+#DefaultResourcesListWithConfigMap: ["deployment", "service", "configmap"]
+
+// ConfigMap Data Defaults
+//
+// Common default values for ConfigMap data fields.
+
+#DefaultRedisURL: "redis://redis.cache.svc.cluster.local:6379"
+
+#DefaultLogLevel: "info"

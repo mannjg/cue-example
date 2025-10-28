@@ -73,7 +73,7 @@ import "list"
 	// Used by the generation tooling to know what to export
 	// Automatically includes debugService when debug mode is enabled
 
-	_baseResourcesList: ["deployment", "service"]
+	_baseResourcesList: #DefaultBaseResourcesList
 
 	// Default resources list - apps can override to add additional resources (e.g., bar adds "configmap")
 	if appConfig.debug {
