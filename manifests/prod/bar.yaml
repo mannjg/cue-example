@@ -6,6 +6,8 @@ metadata:
   labels:
     app: bar
     deployment: bar
+    environment: production
+    tier: critical
   annotations:
     deployment.kubernetes.io/revision: "1"
     maintainer: platform-team@example.com
@@ -16,11 +18,15 @@ spec:
     matchLabels:
       app: bar
       deployment: bar
+      environment: production
+      tier: critical
   template:
     metadata:
       labels:
         app: bar
         deployment: bar
+        environment: production
+        tier: critical
       annotations:
         backup.velero.io/backup-volumes: data
         sidecar.istio.io/inject: "true"
@@ -28,7 +34,9 @@ spec:
       containers:
         - name: bar
           image: bar:v1.2.3
-          envFrom: []
+          envFrom:
+            - configMapRef:
+                name: shared-production-config
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
@@ -146,6 +154,8 @@ metadata:
   labels:
     app: bar
     deployment: bar
+    environment: production
+    tier: critical
 spec:
   type: ClusterIP
   selector:

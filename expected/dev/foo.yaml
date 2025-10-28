@@ -5,69 +5,23 @@ metadata:
   namespace: dev
   labels:
     app: foo
-    component: backend
-    managed: cue
+    deployment: foo
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: foo
-      component: backend
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      deployment: foo
   template:
     metadata:
       labels:
         app: foo
-        component: backend
-        managed: cue
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: /metrics
+        deployment: foo
     spec:
       containers:
         - name: foo
           image: foo:dev-latest
-          env:
-            - name: APP_ENV
-              value: production
-            - name: APP_PORT
-              value: "8080"
-            - name: DATABASE_HOST
-              value: postgres.database.svc.cluster.local
-            - name: DATABASE_PORT
-              value: "5432"
-            - name: DATABASE_NAME
-              value: foo
-            - name: DATABASE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: foo-secrets
-                  key: db-user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: foo-secrets
-                  key: db-password
-            - name: REDIS_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: foo-config
-                  key: redis-url
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: foo-config
-                  key: log-level
-          envFrom:
-            - configMapRef:
-                name: foo-config
-            - secretRef:
-                name: foo-secrets
+          envFrom: []
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
@@ -82,6 +36,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+              protocol: TCP
+            - name: debug
+              containerPort: 5005
               protocol: TCP
           readinessProbe:
             httpGet:
@@ -149,6 +106,11 @@ spec:
                   items:
                     - key: redis-url
                       path: config/redis-url
+              - configMap:
+                  name: dev-cluster-ca
+                  items:
+                    - key: ca.crt
+                      path: config/cluster-ca.crt
               - downwardAPI:
                   items:
                     - path: pod/name
@@ -163,6 +125,11 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       serviceAccountName: foo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
 ---
 apiVersion: v1
 kind: Service
@@ -171,8 +138,7 @@ metadata:
   namespace: dev
   labels:
     app: foo
-    component: backend
-    managed: cue
+    deployment: foo
 spec:
   type: ClusterIP
   selector:
@@ -183,4 +149,26 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 8080
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foo-debug
+  namespace: dev
+  labels:
+    app: foo
+    deployment: foo
+  annotations:
+    description: Debug service for remote debugging
+spec:
+  type: ClusterIP
+  selector:
+    app: foo
+    component: backend
+  ports:
+    - name: debug
+      protocol: TCP
+      port: 5005
+      targetPort: 5005
   sessionAffinity: None

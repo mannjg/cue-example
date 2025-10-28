@@ -39,7 +39,9 @@ spec:
               value: enabled
             - name: BAZ_API_VERSION
               value: v2
-          envFrom: []
+          envFrom:
+            - configMapRef:
+                name: shared-production-config
           imagePullPolicy: Always
           livenessProbe:
             httpGet:

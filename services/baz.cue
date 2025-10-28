@@ -3,20 +3,14 @@
 package services
 
 // baz application configuration
-// Uses the #AppBase template from base.cue with baz-specific customizations
-baz: #AppBase & {
+// Uses the #App template with baz-specific customizations
+baz: #App & {
 	// Set the application name
 	appName: "baz"
 
-	// Use default namespace pattern: "baz-namespace"
-	// Can be overridden by environments via appConfig.namespace
-
-	// Resources exported for this app: deployment and service (default from #AppBase)
-	// When debug mode is enabled in an environment, that environment should override
-	// resources_list to include "debugService"
-
-	// Add app-specific environment variables
-	// These will be present in ALL environments (dev, stage, prod)
+	// Add app-specific environment variables that will be present in ALL environments
+	// Environments can add additional env vars via their appConfig.additionalEnv
+	// The lists will be concatenated together
 	appConfig: additionalEnv: [
 		{
 			name:  "BAZ_FEATURE_FLAG"

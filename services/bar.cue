@@ -5,30 +5,27 @@ package services
 import "example.com/cue-example/k8s"
 
 // bar application configuration
-// Uses the #AppBase template from base.cue with bar-specific customizations
-bar: #AppBase & {
+// Uses the #App template with bar-specific customizations
+bar: #App & {
 	// Set the application name
 	appName: "bar"
 
-	// Use default namespace pattern: "bar-namespace"
-	// Can be overridden by environments via appConfig.namespace
-
-	// Resources exported for this app: deployment, service, and configmap
-	// Bar includes a ConfigMap resource in addition to the defaults
+	// Bar includes a ConfigMap resource in addition to the standard resources
+	// Override resources_list to include it
 	resources_list: ["deployment", "service", "configmap"]
-}
 
-// Add ConfigMap resource for bar
-// Defined separately to allow proper scoping of appConfig reference
-bar: configmap: k8s.#ConfigMap & {
-	metadata: {
-		name:      "bar-config"
-		namespace: bar.appConfig.namespace
-		labels:    bar.appConfig.labels
-	}
+	// Add ConfigMap resource for bar
+	// This demonstrates how apps can extend the base template with additional resources
+	// Note: Environment files must provide metadata.namespace and metadata.labels via overrides
+	configmap: k8s.#ConfigMap & {
+		metadata: {
+			name: "bar-config"
+			// namespace and labels must be provided by environment files
+		}
 
-	data: {
-		"redis-url": string | *"redis://redis.cache.svc.cluster.local:6379"
-		"log-level": string | *"info"
+		data: {
+			"redis-url": string | *"redis://redis.cache.svc.cluster.local:6379"
+			"log-level": string | *"info"
+		}
 	}
 }
