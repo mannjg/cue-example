@@ -2,7 +2,11 @@
 // This file defines the Service resource templates
 package services
 
-import "example.com/cue-example/k8s"
+import (
+	"list"
+
+	"example.com/cue-example/k8s"
+)
 
 // #ServiceTemplate generates a Kubernetes Service from app configuration.
 #ServiceTemplate: {
@@ -38,13 +42,14 @@ import "example.com/cue-example/k8s"
 				component: "backend"
 			}
 
-			// Service ports with smart defaults
-			ports: appConfig.servicePorts | *[{
+			// Service ports - always include base ports, plus additional
+			_baseServicePorts: [{
 				name:       "http"
 				protocol:   "TCP"
 				port:       80
 				targetPort: 8080
 			}]
+			ports: list.Concat([_baseServicePorts, appConfig.additionalServicePorts])
 
 			sessionAffinity: "None"
 		}

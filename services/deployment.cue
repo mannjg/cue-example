@@ -25,7 +25,13 @@ import (
 	_labels: _defaultLabels & appConfig.labels
 
 	// Default environment variables (apps can extend via appConfig.additionalEnv)
-	_defaultEnv: []
+	_defaultEnv: [...k8s.#EnvVar]
+	if appConfig.debug {
+		_defaultEnv: [{name: "DEBUG", value: "yes"}]
+	}
+	if !appConfig.debug {
+		_defaultEnv: []
+	}
 
 	// Computed env - merge defaults with additional
 	_env: list.Concat([_defaultEnv, appConfig.additionalEnv])
@@ -36,22 +42,18 @@ import (
 	// Computed envFrom - merge defaults with additional
 	_envFrom: list.Concat([_defaultEnvFrom, appConfig.additionalEnvFrom])
 
-	// Container ports - use override if provided, otherwise compute based on debug
-	_containerPorts: [...k8s.#ContainerPort]
-	if appConfig.containerPorts != _|_ {
-		_containerPorts: appConfig.containerPorts
+	// Container ports - always include base ports, plus debug when enabled, plus additional
+	_baseContainerPorts: [
+		{name: "http", containerPort: 8080, protocol: "TCP"},
+	]
+	_debugContainerPorts: [...k8s.#ContainerPort]
+	if appConfig.debug {
+		_debugContainerPorts: [{name: "debug", containerPort: 5005, protocol: "TCP"}]
 	}
-	if appConfig.containerPorts == _|_ {
-		if appConfig.debug {
-			_containerPorts: [
-				{name: "http", containerPort: 8080, protocol: "TCP"},
-				{name: "debug", containerPort: 5005, protocol: "TCP"},
-			]
-		}
-		if !appConfig.debug {
-			_containerPorts: [{name: "http", containerPort: 8080, protocol: "TCP"}]
-		}
+	if !appConfig.debug {
+		_debugContainerPorts: []
 	}
+	_containerPorts: list.Concat([_baseContainerPorts, _debugContainerPorts, appConfig.additionalContainerPorts])
 
 	// Volume configuration with smart defaults
 	_volumeConfig: appConfig.volumes | *{}
@@ -263,8 +265,8 @@ import (
 
 						resources: appConfig.resources
 
-						// Liveness probe with smart defaults
-						livenessProbe: appConfig.livenessProbe | *{
+						// Liveness probe with smart defaults - merges user settings with defaults
+						_defaultLivenessProbe: {
 							httpGet: {
 								path:   "/health/live"
 								port:   8080
@@ -275,9 +277,10 @@ import (
 							timeoutSeconds:      5
 							failureThreshold:    3
 						}
+						livenessProbe: _defaultLivenessProbe & (appConfig.livenessProbe | {})
 
-						// Readiness probe with smart defaults
-						readinessProbe: appConfig.readinessProbe | *{
+						// Readiness probe with smart defaults - merges user settings with defaults
+						_defaultReadinessProbe: {
 							httpGet: {
 								path:   "/health/ready"
 								port:   8080
@@ -288,6 +291,7 @@ import (
 							timeoutSeconds:      3
 							failureThreshold:    3
 						}
+						readinessProbe: _defaultReadinessProbe & (appConfig.readinessProbe | {})
 
 						securityContext: {
 							runAsNonRoot:             true

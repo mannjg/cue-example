@@ -102,13 +102,15 @@ import "example.com/cue-example/k8s"
 
 	// ===== Networking =====
 
-	// Container ports configuration
-	// If not specified, defaults to http:8080 (and debug:5005 when debug=true)
-	containerPorts?: [...k8s.#ContainerPort]
+	// Additional container ports to append to base ports
+	// Base ports always include http:8080, plus debug:5005 when debug=true
+	// Use this to add custom ports without replacing the defaults
+	additionalContainerPorts: [...k8s.#ContainerPort] | *[]
 
-	// Service ports configuration
-	// If not specified, defaults to http:80->8080
-	servicePorts?: [...k8s.#ServicePort]
+	// Additional service ports to append to base service ports
+	// Base service ports always include http:80->8080
+	// Use this to add custom service ports without replacing the defaults
+	additionalServicePorts: [...k8s.#ServicePort] | *[]
 
 	// Service annotations (applied to Service metadata)
 	serviceAnnotations?: [string]: string
