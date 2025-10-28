@@ -247,7 +247,10 @@ import (
 
 						volumeMounts: _volumeMounts
 
-						resources: appConfig.resources
+						// Only include resources if defined (avoids rendering empty resources: {})
+						if appConfig.resources != _|_ {
+							resources: appConfig.resources
+						}
 
 						// Liveness probe with smart defaults - merges user settings with defaults
 						livenessProbe: #DefaultLivenessProbe & (appConfig.livenessProbe | {})

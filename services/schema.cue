@@ -18,8 +18,8 @@ import "example.com/cue-example/k8s"
 	// Number of pod replicas
 	replicas: int & >=1 & <=10
 
-	// Resource requests and limits
-	resources: k8s.#Resources
+	// Resource requests and limits (optional - if not provided, no limits are set)
+	resources?: k8s.#Resources
 
 	// ===== Namespace and Identity =====
 
