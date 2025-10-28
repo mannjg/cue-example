@@ -9,6 +9,12 @@ import (
 // Import all from services to get deployment definitions
 services
 
+// Environment-level defaults shared by all apps in development
+// Apps can reference these values and override them if needed
+_envDefaults: {
+	clusterCAConfigMap: "dev-cluster-ca"
+}
+
 // Development environment configuration for foo app
 // Optimized for fast iteration and minimal resource usage
 foo: appConfig: {
@@ -36,6 +42,13 @@ foo: appConfig: {
 
 	// No node selector - can run on any node
 	// nodeSelector not specified, runs anywhere
+
+	// Use environment-level cluster CA ConfigMap
+	clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+	// Enable debug mode for development troubleshooting
+	// Automatically adds debug port (5005) and creates separate debug service
+	debug: true
 }
 
 // Development environment configuration for bar app
@@ -61,6 +74,12 @@ bar: appConfig: {
 
 	// Development namespace
 	namespace: "dev"
+
+	// Override environment default with app-specific cluster CA ConfigMap
+	// Demonstrates per-app override capability
+	clusterCAConfigMap: "bar-custom-dev-ca"
+
+	// Debug mode disabled for bar (default is false)
 }
 
 // Development environment configuration for baz app
@@ -86,4 +105,9 @@ baz: appConfig: {
 
 	// Development namespace
 	namespace: "dev"
+
+	// Use environment-level cluster CA ConfigMap
+	clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+	// Debug mode disabled for baz (default is false)
 }

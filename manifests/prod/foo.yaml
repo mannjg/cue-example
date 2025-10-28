@@ -5,9 +5,8 @@ metadata:
   namespace: production
   labels:
     app: foo
-    component: backend
+    deployment: foo
     environment: production
-    managed: cue
     tier: critical
   annotations:
     deployment.kubernetes.io/revision: "1"
@@ -18,24 +17,17 @@ spec:
   selector:
     matchLabels:
       app: foo
-      component: backend
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      deployment: foo
+      environment: production
+      tier: critical
   template:
     metadata:
       labels:
         app: foo
-        component: backend
+        deployment: foo
         environment: production
-        managed: cue
         tier: critical
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: /metrics
         backup.velero.io/backup-volumes: data
         sidecar.istio.io/inject: "true"
     spec:
@@ -43,45 +35,11 @@ spec:
         - name: foo
           image: foo:v1.2.3
           env:
-            - name: APP_ENV
-              value: production
-            - name: APP_PORT
-              value: "8080"
-            - name: DATABASE_HOST
-              value: postgres.database.svc.cluster.local
-            - name: DATABASE_PORT
-              value: "5432"
-            - name: DATABASE_NAME
-              value: foo
-            - name: DATABASE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: foo-secrets
-                  key: db-user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: foo-secrets
-                  key: db-password
-            - name: REDIS_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: foo-config
-                  key: redis-url
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: foo-config
-                  key: log-level
             - name: PRODUCTION_MODE
               value: "true"
             - name: ALERT_WEBHOOK_URL
               value: https://alerts.example.com/webhook/foo
           envFrom:
-            - configMapRef:
-                name: foo-config
-            - secretRef:
-                name: foo-secrets
             - configMapRef:
                 name: shared-production-config
           imagePullPolicy: Always
@@ -165,6 +123,11 @@ spec:
                   items:
                     - key: redis-url
                       path: config/redis-url
+              - configMap:
+                  name: prod-cluster-ca
+                  items:
+                    - key: ca.crt
+                      path: config/cluster-ca.crt
               - downwardAPI:
                   items:
                     - path: pod/name
@@ -182,6 +145,11 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       serviceAccountName: foo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 ---
 apiVersion: v1
 kind: Service
@@ -190,9 +158,8 @@ metadata:
   namespace: production
   labels:
     app: foo
-    component: backend
+    deployment: foo
     environment: production
-    managed: cue
     tier: critical
 spec:
   type: ClusterIP

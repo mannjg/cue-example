@@ -5,69 +5,23 @@ metadata:
   namespace: staging
   labels:
     app: bar
-    component: backend
-    managed: cue
+    deployment: bar
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: bar
-      component: backend
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      deployment: bar
   template:
     metadata:
       labels:
         app: bar
-        component: backend
-        managed: cue
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: /metrics
+        deployment: bar
     spec:
       containers:
         - name: bar
           image: bar:stage-v1.2.3-rc1
-          env:
-            - name: APP_ENV
-              value: production
-            - name: APP_PORT
-              value: "8080"
-            - name: DATABASE_HOST
-              value: postgres.database.svc.cluster.local
-            - name: DATABASE_PORT
-              value: "5432"
-            - name: DATABASE_NAME
-              value: bar
-            - name: DATABASE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: bar-secrets
-                  key: db-user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: bar-secrets
-                  key: db-password
-            - name: REDIS_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: bar-config
-                  key: redis-url
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: bar-config
-                  key: log-level
-          envFrom:
-            - configMapRef:
-                name: bar-config
-            - secretRef:
-                name: bar-secrets
+          envFrom: []
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
@@ -149,6 +103,11 @@ spec:
                   items:
                     - key: redis-url
                       path: config/redis-url
+              - configMap:
+                  name: stage-cluster-ca
+                  items:
+                    - key: ca.crt
+                      path: config/cluster-ca.crt
               - downwardAPI:
                   items:
                     - path: pod/name
@@ -171,8 +130,7 @@ metadata:
   namespace: staging
   labels:
     app: bar
-    component: backend
-    managed: cue
+    deployment: bar
 spec:
   type: ClusterIP
   selector:
@@ -192,8 +150,7 @@ metadata:
   namespace: staging
   labels:
     app: bar
-    component: backend
-    managed: cue
+    deployment: bar
 data:
   redis-url: redis://redis.cache.svc.cluster.local:6379
   log-level: info

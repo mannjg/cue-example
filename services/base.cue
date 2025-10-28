@@ -57,12 +57,22 @@ import (
 		readinessProbe?: k8s.#Probe
 
 		// Optional container ports override
+		// If not specified, defaults to http port (and debug port when debug=true)
 		// Apps or environments can override to expose different/additional ports
 		containerPorts?: [...k8s.#ContainerPort]
 
 		// Optional service ports override
 		// Apps or environments can override to expose different service ports
 		servicePorts?: [...k8s.#ServicePort]
+
+		// Enable debug mode - adds debug port to deployment and creates debug service
+		// Typically enabled in dev/stage environments for troubleshooting
+		debug: bool | *false
+
+		// Cluster CA ConfigMap name - can be set at environment level
+		// Used in projected volumes for TLS certificate authority configuration
+		// Defaults to environment-level value if provided, otherwise falls back to app default
+		clusterCAConfigMap?: string
 	}
 
 	// Volume source names with defaults that can be overridden by environments
@@ -94,11 +104,6 @@ import (
 	// Can be extended by apps or environments via appConfig.additionalEnv
 	defaultEnv: []
 
-	// resources_list defines which Kubernetes resources this app includes
-	// This list is used by generate-manifests.sh to dynamically export resources
-	// Default includes deployment and service; apps can override to add more (e.g., configmap)
-	resources_list: [...string] | *["deployment", "service"]
-
 	// appConfig is a constraint that environment files must satisfy
 	// The constraint limits replicas to a reasonable range and provides app-level defaults
 	appConfig: #AppConfig & {
@@ -111,6 +116,47 @@ import (
 		}
 	}
 
+	// _defaultPorts computes container ports based on debug flag
+	// Base includes http port; debug mode automatically adds debug port
+	_basePorts: [{
+		name:          "http"
+		containerPort: 8080
+		protocol:      "TCP"
+	}]
+	_debugPort: {
+		name:          "debug"
+		containerPort: 5005
+		protocol:      "TCP"
+	}
+	_computedPorts: {
+		if !appConfig.debug {
+			out: _basePorts
+		}
+		if appConfig.debug {
+			out: list.Concat([_basePorts, [_debugPort]])
+		}
+	}
+
+	// _resolvedPorts uses explicit override if provided, otherwise smart default
+	_resolvedPorts: appConfig.containerPorts | *_computedPorts.out
+
+	// _defaultResourcesList computes resource list based on debug flag
+	// Base includes deployment and service; debug mode automatically adds debugService
+	_baseResourcesList: ["deployment", "service"]
+	_computedResourcesList: {
+		if !appConfig.debug {
+			out: _baseResourcesList
+		}
+		if appConfig.debug {
+			out: list.Concat([_baseResourcesList, ["debugService"]])
+		}
+	}
+
+	// resources_list defines which Kubernetes resources this app includes
+	// This list is used by generate-manifests.sh to dynamically export resources
+	// Default is computed based on debug flag; apps can override to add more (e.g., configmap)
+	resources_list: [...string] | *_computedResourcesList.out
+
 	volumeSourceNames: #DefaultVolumeSourceNames & {
 		if appConfig.volumeSourceNames != _|_ {
 			if appConfig.volumeSourceNames.configMapName != _|_ {
@@ -120,6 +166,13 @@ import (
 				secretName: appConfig.volumeSourceNames.secretName
 			}
 		}
+	}
+
+	// Resolved cluster CA ConfigMap name - uses app override if provided, otherwise defaults
+	// This enables environment-level defaults with per-app override capability
+	_resolvedClusterCA: string | *"\(appName)-cluster-ca"
+	if appConfig.clusterCAConfigMap != _|_ {
+		_resolvedClusterCA: appConfig.clusterCAConfigMap
 	}
 
 	// env combines default individual vars with app/environment-specific additions
@@ -133,6 +186,7 @@ import (
 		let ns = appConfig.namespace
 		let envFromSources = envFrom
 		let envVars = env
+		let containerPorts = _resolvedPorts
 		metadata: {
 			name:      appName
 			namespace: ns
@@ -164,13 +218,9 @@ import (
 						// Environment variable sources from ConfigMaps and Secrets
 						envFrom: envFromSources
 
-						// Container ports with overridable defaults
-						// Apps or environments can override via appConfig.containerPorts
-						ports: appConfig.containerPorts | *[{
-							name:          "http"
-							containerPort: 8080
-							protocol:      "TCP"
-						}]
+						// Container ports from appConfig
+						// When debug mode is enabled, environments should override to include debug port (5005)
+						ports: containerPorts
 
 						volumeMounts: [
 							{
@@ -289,6 +339,17 @@ import (
 										}
 									},
 									{
+										configMap: {
+											name: _resolvedClusterCA
+											items: [
+												{
+													key:  "ca.crt"
+													path: "config/cluster-ca.crt"
+												},
+											]
+										}
+									},
+									{
 										downwardAPI: {
 											items: [
 												{
@@ -355,6 +416,41 @@ import (
 			}]
 
 			sessionAffinity: "None"
+		}
+	}
+
+	// debugService defines a separate Kubernetes Service resource for debug access
+	// Only created when debug mode is enabled (appConfig.debug == true)
+	// Provides external access to debug port (e.g., Java remote debugging on port 5005)
+	if appConfig.debug {
+		debugService: k8s.#Service & {
+			let ns = appConfig.namespace
+			metadata: {
+				name:      "\(appName)-debug"
+				namespace: ns
+				labels:    appConfig.labels
+				annotations: {
+					"description": "Debug service for remote debugging"
+				}
+			}
+
+			spec: {
+				type: "ClusterIP"
+
+				selector: {
+					app:       appName
+					component: "backend"
+				}
+
+				ports: [{
+					name:       "debug"
+					protocol:   "TCP"
+					port:       5005
+					targetPort: 5005
+				}]
+
+				sessionAffinity: "None"
+			}
 		}
 	}
 

@@ -11,7 +11,7 @@ foo: #AppBase & {
 	// Use default namespace pattern: "foo-namespace"
 	// Can be overridden by environments via appConfig.namespace
 
-	// Resources exported for this app: deployment and service
-	// This is the default from #AppBase, explicitly shown here for clarity
-	resources_list: ["deployment", "service"]
+	// Resources exported for this app: deployment and service (default from #AppBase)
+	// When debug mode is enabled in an environment, that environment should override
+	// resources_list to include "debugService"
 }

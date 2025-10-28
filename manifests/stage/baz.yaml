@@ -5,73 +5,28 @@ metadata:
   namespace: staging
   labels:
     app: baz
-    component: backend
-    managed: cue
+    deployment: baz
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: baz
-      component: backend
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      deployment: baz
   template:
     metadata:
       labels:
         app: baz
-        component: backend
-        managed: cue
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: /metrics
+        deployment: baz
     spec:
       containers:
         - name: baz
           image: baz:stage-v1.2.3-rc1
           env:
-            - name: APP_ENV
-              value: production
-            - name: APP_PORT
-              value: "8080"
-            - name: DATABASE_HOST
-              value: postgres.database.svc.cluster.local
-            - name: DATABASE_PORT
-              value: "5432"
-            - name: DATABASE_NAME
-              value: baz
-            - name: DATABASE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: baz-secrets
-                  key: db-user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: baz-secrets
-                  key: db-password
-            - name: REDIS_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: baz-config
-                  key: redis-url
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: baz-config
-                  key: log-level
             - name: BAZ_FEATURE_FLAG
               value: enabled
             - name: BAZ_API_VERSION
               value: v2
-          envFrom:
-            - configMapRef:
-                name: baz-config
-            - secretRef:
-                name: baz-secrets
+          envFrom: []
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
@@ -86,6 +41,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+              protocol: TCP
+            - name: debug
+              containerPort: 5005
               protocol: TCP
           readinessProbe:
             httpGet:
@@ -153,6 +111,11 @@ spec:
                   items:
                     - key: redis-url
                       path: config/redis-url
+              - configMap:
+                  name: stage-cluster-ca
+                  items:
+                    - key: ca.crt
+                      path: config/cluster-ca.crt
               - downwardAPI:
                   items:
                     - path: pod/name
@@ -175,8 +138,7 @@ metadata:
   namespace: staging
   labels:
     app: baz
-    component: backend
-    managed: cue
+    deployment: baz
 spec:
   type: ClusterIP
   selector:
@@ -187,4 +149,26 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 8080
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: baz-debug
+  namespace: staging
+  labels:
+    app: baz
+    deployment: baz
+  annotations:
+    description: Debug service for remote debugging
+spec:
+  type: ClusterIP
+  selector:
+    app: baz
+    component: backend
+  ports:
+    - name: debug
+      protocol: TCP
+      port: 5005
+      targetPort: 5005
   sessionAffinity: None

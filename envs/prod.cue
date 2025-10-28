@@ -9,6 +9,12 @@ import (
 // Import all from services to get deployment definitions
 services
 
+// Environment-level defaults shared by all apps in production
+// Apps can reference these values and override them if needed
+_envDefaults: {
+	clusterCAConfigMap: "prod-cluster-ca"
+}
+
 // Production environment configuration for foo app
 // Optimized for reliability, performance, and high availability
 foo: {
@@ -77,6 +83,11 @@ foo: {
 			configMapName: "foo-prod-config"
 			secretName:    "foo-prod-secrets"
 		}
+
+		// Use environment-level cluster CA ConfigMap
+		clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+		// Debug mode disabled in production (default is false)
 	}
 
 	// Production-specific overrides for foo deployment
@@ -158,6 +169,11 @@ bar: {
 			configMapName: "bar-prod-config"
 			secretName:    "bar-prod-secrets"
 		}
+
+		// Use environment-level cluster CA ConfigMap
+		clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+		// Debug mode disabled in production (default is false)
 	}
 
 	// Production-specific overrides for bar deployment
@@ -231,6 +247,11 @@ baz: {
 			configMapName: "baz-prod-config"
 			secretName:    "baz-prod-secrets"
 		}
+
+		// Use environment-level cluster CA ConfigMap
+		clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+		// Debug mode disabled in production (default is false)
 	}
 
 	// Production-specific overrides for baz deployment

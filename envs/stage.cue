@@ -9,6 +9,12 @@ import (
 // Import all from services to get deployment definitions
 services
 
+// Environment-level defaults shared by all apps in staging
+// Apps can reference these values and override them if needed
+_envDefaults: {
+	clusterCAConfigMap: "stage-cluster-ca"
+}
+
 // Staging environment configuration for foo app
 // Production-like environment for testing and validation before promoting to production
 foo: appConfig: {
@@ -39,6 +45,11 @@ foo: appConfig: {
 		configMapName: "foo-stage-config"
 		secretName:    "foo-stage-secrets"
 	}
+
+	// Use environment-level cluster CA ConfigMap
+	clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+	// Debug mode disabled for foo in staging (default is false)
 }
 
 // Staging environment configuration for bar app
@@ -63,6 +74,11 @@ bar: appConfig: {
 
 	// Staging namespace
 	namespace: "staging"
+
+	// Use environment-level cluster CA ConfigMap
+	clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+	// Debug mode disabled for bar in staging (default is false)
 }
 
 // Staging environment configuration for baz app
@@ -87,4 +103,12 @@ baz: appConfig: {
 
 	// Staging namespace
 	namespace: "staging"
+
+	// Use environment-level cluster CA ConfigMap
+	clusterCAConfigMap: _envDefaults.clusterCAConfigMap
+
+	// Enable debug mode for baz in staging for testing
+	// Automatically adds debug port (5005) and creates separate debug service
+	// Demonstrates that different apps can have different debug settings per environment
+	debug: true
 }
