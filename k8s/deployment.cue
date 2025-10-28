@@ -226,11 +226,11 @@ package k8s
 	exec?: {
 		command: [...string]
 	}
-	initialDelaySeconds?: int | *0
-	periodSeconds?:       int | *10
-	timeoutSeconds?:      int | *1
-	successThreshold?:    int | *1
-	failureThreshold?:    int | *3
+	initialDelaySeconds?: int
+	periodSeconds?:       int
+	timeoutSeconds?:      int
+	successThreshold?:    int
+	failureThreshold?:    int
 }
 
 // #DeploymentStrategy defines how updates are performed
