@@ -21,6 +21,9 @@ spec:
       containers:
         - name: foo
           image: foo:dev-latest
+          env:
+            - name: DEBUG
+              value: "yes"
           envFrom: []
           imagePullPolicy: Always
           livenessProbe:
