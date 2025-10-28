@@ -15,6 +15,9 @@ import (
 	appName:   string
 	appConfig: #AppConfig
 
+	// Resource manifest - this template always produces a deployment
+	_producedResources: ["deployment"]
+
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
 		app:        appName
@@ -64,6 +67,7 @@ import (
 		_configVolumes,
 		_cacheVolumes,
 		_projectedSecretsVolumes,
+		_appConfigMapVolumes,
 		_additionalVolumes,
 	])
 
@@ -164,12 +168,26 @@ import (
 
 	_additionalVolumes: _volumeConfig.additionalVolumes | *[]
 
+	// App-specific ConfigMap volume (when configMapData is provided)
+	_appConfigMapVolumes: [
+		if appConfig.configMapData != _|_ {
+			name: #DefaultAppConfigMapVolumeName
+			configMap: {
+				name: "\(appName)-config"
+				if appConfig.configMapData.mount != _|_ && appConfig.configMapData.mount.items != _|_ {
+					items: appConfig.configMapData.mount.items
+				}
+			}
+		},
+	]
+
 	// Build volume mounts list
 	_volumeMounts: list.Concat([
 		_dataVolumeMounts,
 		_configVolumeMounts,
 		_cacheVolumeMounts,
 		_projectedSecretsVolumeMounts,
+		_appConfigMapVolumeMounts,
 		_additionalVolumeMounts,
 	])
 
@@ -198,6 +216,21 @@ import (
 	]
 
 	_additionalVolumeMounts: _volumeConfig.additionalVolumeMounts | *[]
+
+	// App-specific ConfigMap volume mounts (when configMapData is provided)
+	_appConfigMapVolumeMounts: [
+		if appConfig.configMapData != _|_ {
+			let mountConfig = appConfig.configMapData.mount | *{}
+			{
+				name:      #DefaultAppConfigMapVolumeName
+				mountPath: mountConfig.path | #DefaultAppConfigMapVolumeMount.mountPath
+				readOnly:  mountConfig.readOnly | #DefaultAppConfigMapVolumeMount.readOnly
+				if mountConfig.subPath != _|_ {
+					subPath: mountConfig.subPath
+				}
+			}
+		},
+	]
 
 	// The actual Deployment resource
 	deployment: k8s.#Deployment & {

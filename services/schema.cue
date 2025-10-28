@@ -90,6 +90,37 @@ import "example.com/cue-example/k8s"
 	// Used in projected volumes for TLS certificate authority configuration
 	clusterCAConfigMap?: string
 
+	// ===== ConfigMap Configuration =====
+
+	// ConfigMap data - if provided, creates a ConfigMap resource and mounts it
+	// This is a high-level capability that wires together:
+	// - ConfigMap resource creation
+	// - Volume definition in deployment
+	// - VolumeMount in container
+	configMapData?: {
+		// The actual key-value data for the ConfigMap
+		data: [string]: string
+
+		// Optional mount configuration
+		mount?: {
+			// Mount path in the container
+			path: string | *"/etc/app-config"
+
+			// Whether the mount should be read-only
+			readOnly: bool | *true
+
+			// Optional subPath for mounting a specific key
+			subPath?: string
+
+			// Optional specific items to mount (instead of all keys)
+			items?: [...{
+				key:  string
+				path: string
+				mode?: int
+			}]
+		}
+	}
+
 	// ===== Health Probes =====
 
 	// Liveness probe configuration

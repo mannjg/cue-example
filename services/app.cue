@@ -50,38 +50,54 @@ import "list"
 	}
 
 	// ===== Resource Generation =====
-	// Instantiate the deployment template
-	#DeploymentTemplate & {
+	// Capture each template separately to avoid field conflicts
+	_deploymentTemplate: #DeploymentTemplate & {
 		"appName":   appName
 		"appConfig": appConfig
 	}
 
-	// Instantiate the service template
-	#ServiceTemplate & {
+	_serviceTemplate: #ServiceTemplate & {
 		"appName":   appName
 		"appConfig": appConfig
 	}
 
-	// Instantiate the debug service template (conditional on debug mode)
-	#DebugServiceTemplate & {
+	_debugServiceTemplate: #DebugServiceTemplate & {
 		"appName":   appName
 		"appConfig": appConfig
+	}
+
+	_configMapTemplate: #ConfigMapTemplate & {
+		"appName":   appName
+		"appConfig": appConfig
+	}
+
+	// Extract resource fields from templates (avoids spreading _producedResources)
+	deployment: _deploymentTemplate.deployment
+	service:    _serviceTemplate.service
+
+	// Conditionally include debugService
+	if appConfig.debug {
+		debugService: _debugServiceTemplate.debugService
+	}
+
+	// Conditionally include configmap
+	if appConfig.configMapData != _|_ {
+		configmap: _configMapTemplate.configmap
 	}
 
 	// ===== Resources List Management =====
 	// resources_list defines which Kubernetes resources this app exports
 	// Used by the generation tooling to know what to export
-	// Automatically includes debugService when debug mode is enabled
+	// Automatically built from all template _producedResources outputs
+	// Apps can still override by providing an explicit resources_list
 
-	_baseResourcesList: #DefaultBaseResourcesList
-
-	// Default resources list - apps can override to add additional resources (e.g., bar adds "configmap")
-	if appConfig.debug {
-		resources_list: [...string] | *list.Concat([_baseResourcesList, ["debugService"]])
-	}
-	if !appConfig.debug {
-		resources_list: [...string] | *_baseResourcesList
-	}
+	// Auto-generate resources_list from template outputs
+	resources_list: [...string] | *list.FlattenN([
+		_deploymentTemplate._producedResources,
+		_serviceTemplate._producedResources,
+		_debugServiceTemplate._producedResources,
+		_configMapTemplate._producedResources,
+	], 1)
 
 	// ===== Extensibility =====
 	// Allow apps to add additional fields (e.g., configmap for bar)
