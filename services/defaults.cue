@@ -134,17 +134,6 @@ package services
 	readOnly:  true
 }
 
-// App-specific ConfigMap defaults
-// These are used when appConfig.configMapData is provided
-
-#DefaultAppConfigMapVolumeName: "app-config"
-
-#DefaultAppConfigMapVolumeMount: {
-	name:      #DefaultAppConfigMapVolumeName
-	mountPath: "/etc/app-config"
-	readOnly:  true
-}
-
 // Projected Volume Items
 //
 // These provide baseline configurations for projected volumes.

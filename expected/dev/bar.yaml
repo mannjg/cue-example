@@ -65,9 +65,6 @@ spec:
             - name: projected-secrets
               mountPath: /var/secrets
               readOnly: true
-            - name: app-config
-              mountPath: /etc/app-config
-              readOnly: true
           securityContext:
             runAsGroup: 1000
             runAsNonRoot: true
@@ -117,9 +114,6 @@ spec:
                     - path: pod/namespace
                       fieldRef:
                         fieldPath: metadata.namespace
-        - name: app-config
-          configMap:
-            name: bar-config
       securityContext:
         runAsGroup: 1000
         runAsNonRoot: true

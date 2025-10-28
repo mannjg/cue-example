@@ -103,11 +103,11 @@ import "example.com/cue-example/k8s"
 
 		// Optional mount configuration
 		mount?: {
-			// Mount path in the container
-			path: string | *"/etc/app-config"
+			// Mount path in the container (defaults to #DefaultConfigVolumeMount.mountPath)
+			path?: string
 
-			// Whether the mount should be read-only
-			readOnly: bool | *true
+			// Whether the mount should be read-only (defaults to #DefaultConfigVolumeMount.readOnly)
+			readOnly?: bool
 
 			// Optional subPath for mounting a specific key
 			subPath?: string

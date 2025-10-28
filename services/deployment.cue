@@ -67,7 +67,6 @@ import (
 		_configVolumes,
 		_cacheVolumes,
 		_projectedSecretsVolumes,
-		_appConfigMapVolumes,
 		_additionalVolumes,
 	])
 
@@ -81,10 +80,17 @@ import (
 	]
 
 	_configVolumes: [
-		if (_volumeConfig.enableConfigVolume | *true) {
+		// Config volume is enabled if:
+		// 1. Explicitly enabled via volumeConfig.enableConfigVolume, OR
+		// 2. configMapData is provided (which auto-creates the ConfigMap)
+		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMapData != _|_) {
 			name: "config"
 			configMap: {
 				name: _volumeConfig.configVolumeConfigMapName | *"\(appName)-config"
+				// If configMapData provides specific items to mount, use those
+				if appConfig.configMapData != _|_ && appConfig.configMapData.mount != _|_ && appConfig.configMapData.mount.items != _|_ {
+					items: appConfig.configMapData.mount.items
+				}
 			}
 		},
 	]
@@ -168,26 +174,12 @@ import (
 
 	_additionalVolumes: _volumeConfig.additionalVolumes | *[]
 
-	// App-specific ConfigMap volume (when configMapData is provided)
-	_appConfigMapVolumes: [
-		if appConfig.configMapData != _|_ {
-			name: #DefaultAppConfigMapVolumeName
-			configMap: {
-				name: "\(appName)-config"
-				if appConfig.configMapData.mount != _|_ && appConfig.configMapData.mount.items != _|_ {
-					items: appConfig.configMapData.mount.items
-				}
-			}
-		},
-	]
-
 	// Build volume mounts list
 	_volumeMounts: list.Concat([
 		_dataVolumeMounts,
 		_configVolumeMounts,
 		_cacheVolumeMounts,
 		_projectedSecretsVolumeMounts,
-		_appConfigMapVolumeMounts,
 		_additionalVolumeMounts,
 	])
 
@@ -198,8 +190,25 @@ import (
 	]
 
 	_configVolumeMounts: [
-		if (_volumeConfig.enableConfigVolume | *true) {
-			#DefaultConfigVolumeMount
+		// Config volume mount is enabled if:
+		// 1. Explicitly enabled via volumeConfig.enableConfigVolume, OR
+		// 2. configMapData is provided (which auto-creates the ConfigMap)
+		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMapData != _|_) {
+			// If configMapData provides mount config, use it; otherwise use defaults
+			if appConfig.configMapData != _|_ && appConfig.configMapData.mount != _|_ {
+				let mountConfig = appConfig.configMapData.mount
+				{
+					name:      "config"
+					mountPath: mountConfig.path | *#DefaultConfigVolumeMount.mountPath
+					readOnly:  mountConfig.readOnly | *#DefaultConfigVolumeMount.readOnly
+					if mountConfig.subPath != _|_ {
+						subPath: mountConfig.subPath
+					}
+				}
+			}
+			if appConfig.configMapData == _|_ || appConfig.configMapData.mount == _|_ {
+				#DefaultConfigVolumeMount
+			}
 		},
 	]
 
@@ -216,21 +225,6 @@ import (
 	]
 
 	_additionalVolumeMounts: _volumeConfig.additionalVolumeMounts | *[]
-
-	// App-specific ConfigMap volume mounts (when configMapData is provided)
-	_appConfigMapVolumeMounts: [
-		if appConfig.configMapData != _|_ {
-			let mountConfig = appConfig.configMapData.mount | *{}
-			{
-				name:      #DefaultAppConfigMapVolumeName
-				mountPath: mountConfig.path | #DefaultAppConfigMapVolumeMount.mountPath
-				readOnly:  mountConfig.readOnly | #DefaultAppConfigMapVolumeMount.readOnly
-				if mountConfig.subPath != _|_ {
-					subPath: mountConfig.subPath
-				}
-			}
-		},
-	]
 
 	// The actual Deployment resource
 	deployment: k8s.#Deployment & {
