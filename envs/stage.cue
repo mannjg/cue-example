@@ -53,7 +53,7 @@ bar: {
 	}
 
 	// Provide ConfigMap metadata
-	configmap: metadata: {
+	resources: configmap: metadata: {
 		namespace: "staging"
 		labels: {
 			app:        "bar"

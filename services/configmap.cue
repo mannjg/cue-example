@@ -11,14 +11,6 @@ import "example.com/cue-example/k8s"
 	appName:   string
 	appConfig: #AppConfig
 
-	// Resource manifest - conditionally produces configmap based on configMapData presence
-	if appConfig.configMapData != _|_ {
-		_producedResources: ["configmap"]
-	}
-	if appConfig.configMapData == _|_ {
-		_producedResources: []
-	}
-
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
 		app:        appName

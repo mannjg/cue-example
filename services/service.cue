@@ -14,9 +14,6 @@ import (
 	appName:   string
 	appConfig: #AppConfig
 
-	// Resource manifest - this template always produces a service
-	_producedResources: ["service"]
-
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
 		app:        appName
@@ -59,14 +56,6 @@ import (
 	// Required inputs
 	appName:   string
 	appConfig: #AppConfig
-
-	// Resource manifest - conditionally produces debugService based on debug flag
-	if appConfig.debug {
-		_producedResources: ["debugService"]
-	}
-	if !appConfig.debug {
-		_producedResources: []
-	}
 
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {

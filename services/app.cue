@@ -71,33 +71,31 @@ import "list"
 		"appConfig": appConfig
 	}
 
-	// Extract resource fields from templates (avoids spreading _producedResources)
-	deployment: _deploymentTemplate.deployment
-	service:    _serviceTemplate.service
+	// ===== Kubernetes Resources =====
+	// All Kubernetes resources are nested under the resources struct
+	// This enables dynamic list generation and clean resource organization
+	resources: {
+		// Always-present resources
+		deployment: _deploymentTemplate.deployment
+		service:    _serviceTemplate.service
 
-	// Conditionally include debugService
-	if appConfig.debug {
-		debugService: _debugServiceTemplate.debugService
-	}
+		// Conditionally include debugService when debug mode is enabled
+		if appConfig.debug {
+			debugService: _debugServiceTemplate.debugService
+		}
 
-	// Conditionally include configmap
-	if appConfig.configMapData != _|_ {
-		configmap: _configMapTemplate.configmap
+		// Conditionally include configmap when configMapData is provided
+		if appConfig.configMapData != _|_ {
+			configmap: _configMapTemplate.configmap
+		}
 	}
 
 	// ===== Resources List Management =====
-	// resources_list defines which Kubernetes resources this app exports
-	// Used by the generation tooling to know what to export
-	// Automatically built from all template _producedResources outputs
+	// resources_list dynamically reflects what resources actually exist
+	// Uses alphabetical ordering via list.Sort for consistency and predictability
+	// This ensures the list is always accurate and self-documenting
 	// Apps can still override by providing an explicit resources_list
-
-	// Auto-generate resources_list from template outputs
-	resources_list: [...string] | *list.FlattenN([
-		_deploymentTemplate._producedResources,
-		_serviceTemplate._producedResources,
-		_debugServiceTemplate._producedResources,
-		_configMapTemplate._producedResources,
-	], 1)
+	resources_list: [...string] | *list.Sort([for k, _ in resources {k}], list.Ascending)
 
 	// ===== Extensibility =====
 	// Allow apps to add additional fields (e.g., configmap for bar)

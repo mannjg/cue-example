@@ -1,3 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: baz-debug
+  namespace: staging
+  labels:
+    app: baz
+    deployment: baz
+  annotations:
+    description: Debug service for remote debugging
+spec:
+  type: ClusterIP
+  selector:
+    app: baz
+    component: backend
+  ports:
+    - name: debug
+      protocol: TCP
+      port: 5005
+      targetPort: 5005
+  sessionAffinity: None
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -154,26 +176,4 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 8080
-  sessionAffinity: None
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: baz-debug
-  namespace: staging
-  labels:
-    app: baz
-    deployment: baz
-  annotations:
-    description: Debug service for remote debugging
-spec:
-  type: ClusterIP
-  selector:
-    app: baz
-    component: backend
-  ports:
-    - name: debug
-      protocol: TCP
-      port: 5005
-      targetPort: 5005
   sessionAffinity: None

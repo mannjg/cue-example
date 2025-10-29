@@ -65,29 +65,32 @@ for env in "${ENVS[@]}"; do
         resources_str=$(echo "$resources_json" | sed 's/[][]//g' | sed 's/"//g' | tr -d ' ')
         IFS=',' read -ra resources <<< "$resources_str"
 
-        # Build export flags dynamically
-        export_flags=""
-        for resource in "${resources[@]}"; do
-            # Trim whitespace
-            resource=$(echo "$resource" | xargs)
-            if [ -n "$resource" ]; then
-                export_flags="$export_flags -e $app.$resource"
-            fi
-        done
+        # Build export flags from resources_list
+        # Since resources_list is now accurate, we can export all resources in one command
+        if [ ${#resources[@]} -gt 0 ] && [ -n "${resources[0]}" ]; then
+            export_flags=""
+            for resource in "${resources[@]}"; do
+                # Trim whitespace
+                resource=$(echo "$resource" | xargs)
+                if [ -n "$resource" ]; then
+                    export_flags="$export_flags -e $app.resources.$resource"
+                fi
+            done
 
-        # Export app-specific resources
-        if [ -n "$export_flags" ]; then
-            echo "  → Exporting: cue export ./envs/$env.cue $export_flags --out yaml"
-            export_output=$(cue export "./envs/$env.cue" $export_flags --out yaml 2>&1)
-            export_status=$?
+            # Export all app resources in a single command
+            if [ -n "$export_flags" ]; then
+                echo "  → Exporting: cue export ./envs/$env.cue $export_flags --out yaml"
+                export_output=$(cue export "./envs/$env.cue" $export_flags --out yaml 2>&1)
+                export_status=$?
 
-            if [ $export_status -eq 0 ]; then
-                echo "$export_output" > "manifests/$env/$app.yaml"
-                echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
-            else
-                echo -e "${RED}✗ Error exporting resources for $app in $env:${NC}"
-                echo "$export_output" | sed 's/^/  /' | GREP_COLORS='mt=01;31' grep --color=always '.*'
-                exit 1
+                if [ $export_status -eq 0 ]; then
+                    echo "$export_output" > "manifests/$env/$app.yaml"
+                    echo -e "${GREEN}✓ manifests/$env/$app.yaml created (resources: ${resources[*]})${NC}"
+                else
+                    echo -e "${RED}✗ Error exporting resources for $app in $env:${NC}"
+                    echo "$export_output" | sed 's/^/  /' | GREP_COLORS='mt=01;31' grep --color=always '.*'
+                    exit 1
+                fi
             fi
         else
             echo -e "${YELLOW}⚠ No resources defined for $app in $env${NC}"

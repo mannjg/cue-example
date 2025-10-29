@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar-config
+  namespace: production
+  labels:
+    app: bar
+    deployment: bar
+    environment: production
+    tier: critical
+data:
+  redis-url: redis://redis.cache.svc.cluster.local:6379
+  log-level: warn
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -165,17 +179,3 @@ spec:
       port: 80
       targetPort: 8080
   sessionAffinity: None
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: bar-config
-  namespace: production
-  labels:
-    app: bar
-    deployment: bar
-    environment: production
-    tier: critical
-data:
-  redis-url: redis://redis.cache.svc.cluster.local:6379
-  log-level: warn

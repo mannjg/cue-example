@@ -15,9 +15,6 @@ import (
 	appName:   string
 	appConfig: #AppConfig
 
-	// Resource manifest - this template always produces a deployment
-	_producedResources: ["deployment"]
-
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
 		app:        appName

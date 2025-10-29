@@ -129,7 +129,7 @@ bar: {
 	}
 
 	// Provide ConfigMap metadata and data overrides
-	configmap: {
+	resources: configmap: {
 		metadata: {
 			namespace: "production"
 			labels: {

@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar-config
+  namespace: staging
+  labels:
+    app: bar
+    deployment: bar
+data:
+  redis-url: redis://redis.cache.svc.cluster.local:6379
+  log-level: info
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -145,15 +157,3 @@ spec:
       port: 80
       targetPort: 8080
   sessionAffinity: None
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: bar-config
-  namespace: staging
-  labels:
-    app: bar
-    deployment: bar
-data:
-  redis-url: redis://redis.cache.svc.cluster.local:6379
-  log-level: info
