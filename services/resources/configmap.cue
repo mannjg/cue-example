@@ -7,7 +7,7 @@ import (
 	base "example.com/cue-example/services/base"
 )
 
-// #ConfigMapTemplate generates a Kubernetes ConfigMap when configMapData is provided.
+// #ConfigMapTemplate generates a Kubernetes ConfigMap when configMap is provided.
 // This template creates an app-specific ConfigMap that can be mounted into the deployment.
 #ConfigMapTemplate: {
 	// Required inputs
@@ -23,8 +23,8 @@ import (
 	// Computed labels - merge defaults with config
 	_labels: _defaultLabels & appConfig.labels
 
-	// The ConfigMap resource (only created if configMapData is provided)
-	if appConfig.configMapData != _|_ {
+	// The ConfigMap resource (only created if configMap is provided)
+	if appConfig.configMap != _|_ {
 		configmap: k8s.#ConfigMap & {
 			metadata: {
 				name:      "\(appName)-config"
@@ -32,7 +32,7 @@ import (
 				labels:    _labels
 			}
 
-			data: appConfig.configMapData.data
+			data: appConfig.configMap.data
 		}
 	}
 }

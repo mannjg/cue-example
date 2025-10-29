@@ -11,9 +11,9 @@ baz: core.#App & {
 	appName: "baz"
 
 	// Add app-specific environment variables that will be present in ALL environments
-	// Environments can add additional env vars via their appConfig.additionalEnv
+	// Environments can add additional env vars via their appConfig.deployment.additionalEnv
 	// The lists will be concatenated together
-	appConfig: additionalEnv: [
+	appConfig: deployment: additionalEnv: [
 		{
 			name:  "BAZ_FEATURE_FLAG"
 			value: "enabled"

@@ -30,8 +30,8 @@ import (
 			name:      appName
 			namespace: appConfig.namespace
 			labels:    _labels
-			if appConfig.serviceAnnotations != _|_ {
-				annotations: appConfig.serviceAnnotations
+			if appConfig.service.annotations != _|_ {
+				annotations: appConfig.service.annotations
 			}
 		}
 
@@ -50,7 +50,7 @@ import (
 			if !appConfig.enableHttps {
 				_baseServicePorts: [base.#DefaultHttpServicePort]
 			}
-			ports: list.Concat([_baseServicePorts, appConfig.additionalServicePorts])
+			ports: list.Concat([_baseServicePorts, appConfig.service.additionalPorts])
 
 			sessionAffinity: base.#DefaultSessionAffinity
 		}

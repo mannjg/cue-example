@@ -83,8 +83,8 @@ import (
 			}).debugService
 		}
 
-		// Conditionally include configmap when configMapData is provided
-		if appConfig.configMapData != _|_ {
+		// Conditionally include configmap when configMap is provided
+		if appConfig.configMap != _|_ {
 			configmap: (#_ConfigMapTemplate & {
 				"appName":   appName
 				"appConfig": appConfig

@@ -8,20 +8,15 @@ import "example.com/cue-example/k8s"
 // All configuration should flow through this interface - environments provide
 // these values, and they are used to render Kubernetes resources.
 // This eliminates the need for deep merging of deployment/service structures.
+//
+// The schema is organized by resource type:
+// - Top-level: cross-resource configuration (namespace, labels, enableHttps, debug)
+// - deployment.*: Deployment-specific configuration
+// - service.*: Service-specific configuration
+// - configMap: ConfigMap creation and configuration
 #AppConfig: {
-	// ===== Required Configuration =====
-	// These must be provided by environment files
-
-	// Container image with tag (e.g., "myapp:v1.2.3")
-	image: string
-
-	// Number of pod replicas
-	replicas: int & >=1 & <=10
-
-	// Resource requests and limits (optional - if not provided, no limits are set)
-	resources?: k8s.#Resources
-
-	// ===== Namespace and Identity =====
+	// ===== High-Level (Cross-Resource) Configuration =====
+	// These options affect multiple resources or have system-wide impact
 
 	// Namespace for all resources
 	// Defaults to appNamespace if not specified
@@ -31,73 +26,137 @@ import "example.com/cue-example/k8s"
 	// Merged with defaultLabels from the app
 	labels: [string]: string
 
+	// Enable HTTPS mode - switches from HTTP (port 8080) to HTTPS (port 8443)
+	// When enabled:
+	// - Container port changes from 8080 (http) to 8443 (https)
+	// - Service port changes from 80->8080 to 443->8443
+	// - Health probes use port 8443 with HTTPS scheme
+	// Affects: Deployment, Service, Health Probes
+	enableHttps: bool | *false
+
+	// Enable debug mode - adds debug port to deployment and creates debug service
+	// Typically enabled in dev/stage environments for troubleshooting
+	// Affects: Deployment (adds debug port + DEBUG env), Creates DebugService
+	debug: bool | *false
+
 	// ===== Deployment Configuration =====
+	// All options specific to the Deployment resource
 
-	// Deployment-level annotations (applied to Deployment metadata)
-	deploymentAnnotations?: [string]: string
+	deployment: {
+		// ----- Core Container Configuration -----
 
-	// Pod-level annotations (applied to Pod template metadata)
-	podAnnotations?: [string]: string
+		// Container image with tag (e.g., "myapp:v1.2.3")
+		image: string
 
-	// Deployment strategy configuration
-	// Controls how rolling updates are performed
-	deploymentStrategy?: {
-		type: *"RollingUpdate" | "Recreate"
-		if type == "RollingUpdate" {
-			rollingUpdate?: {
-				maxSurge:       int | string | *1
-				maxUnavailable: int | string | *1
+		// Resource requests and limits (optional - if not provided, no limits are set)
+		resources?: k8s.#Resources
+
+		// ----- Scaling -----
+
+		// Number of pod replicas
+		replicas: int & >=1 & <=10
+
+		// ----- Metadata -----
+
+		// Deployment-level annotations (applied to Deployment metadata)
+		annotations?: [string]: string
+
+		// Pod-level annotations (applied to Pod template metadata)
+		podAnnotations?: [string]: string
+
+		// ----- Deployment Strategy -----
+
+		// Deployment strategy configuration
+		// Controls how rolling updates are performed
+		strategy?: {
+			type: *"RollingUpdate" | "Recreate"
+			if type == "RollingUpdate" {
+				rollingUpdate?: {
+					maxSurge:       int | string | *1
+					maxUnavailable: int | string | *1
+				}
 			}
 		}
+
+		// ----- Scheduling and Placement -----
+
+		// Priority class name for pod scheduling
+		// Higher priority pods are scheduled before lower priority ones
+		priorityClassName?: string
+
+		// Affinity rules for advanced pod scheduling
+		// Can specify pod affinity, anti-affinity, and node affinity
+		affinity?: k8s.#Affinity
+
+		// Node selector for pod placement
+		nodeSelector?: [string]: string
+
+		// ----- Health Probes -----
+
+		// Liveness probe configuration
+		// If not specified, uses default HTTP probe on /health/live:8080
+		livenessProbe?: k8s.#Probe
+
+		// Readiness probe configuration
+		// If not specified, uses default HTTP probe on /health/ready:8080
+		readinessProbe?: k8s.#Probe
+
+		// ----- Environment Variables (Additive) -----
+
+		// Additional envFrom sources to append to defaults
+		// Environments specify additional sources here, not the complete list
+		additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
+
+		// Additional individual env vars to append to defaults
+		// Apps or environments specify additional vars here, not the complete list
+		additionalEnv: [...k8s.#EnvVar] | *[]
+
+		// ----- Ports (Additive) -----
+
+		// Additional container ports to append to base ports
+		// Base ports always include http:8080 (or https:8443), plus debug:5005 when debug=true
+		// Use this to add custom ports without replacing the defaults
+		additionalPorts: [...k8s.#ContainerPort] | *[]
+
+		// ----- Volumes Configuration -----
+
+		// Volume configuration - defines which volumes the app needs
+		// If not specified, uses default volumes (data, config, cache, projected-secrets)
+		volumes?: #VolumesConfig
+
+		// Volume source names - can be overridden per environment
+		volumeSourceNames?: {
+			configMapName?: string
+			secretName?:    string
+		}
+
+		// Cluster CA ConfigMap name - can be set at environment level
+		// Used in projected volumes for TLS certificate authority configuration
+		clusterCAConfigMap?: string
 	}
 
-	// Priority class name for pod scheduling
-	// Higher priority pods are scheduled before lower priority ones
-	priorityClassName?: string
+	// ===== Service Configuration =====
+	// All options specific to the Service resource
 
-	// Affinity rules for advanced pod scheduling
-	// Can specify pod affinity, anti-affinity, and node affinity
-	affinity?: k8s.#Affinity
+	service: {
+		// Service annotations (applied to Service metadata)
+		annotations?: [string]: string
 
-	// ===== Node Placement =====
-
-	// Node selector for pod placement
-	nodeSelector?: [string]: string
-
-	// ===== Environment Variables =====
-
-	// Additional envFrom sources to append to defaults
-	// Environments specify additional sources here, not the complete list
-	additionalEnvFrom: [...k8s.#EnvFromSource] | *[]
-
-	// Additional individual env vars to append to defaults
-	// Apps or environments specify additional vars here, not the complete list
-	additionalEnv: [...k8s.#EnvVar] | *[]
-
-	// ===== Volumes Configuration =====
-
-	// Volume configuration - defines which volumes the app needs
-	// If not specified, uses default volumes (data, config, cache, projected-secrets)
-	volumes?: #VolumesConfig
-
-	// Volume source names - can be overridden per environment
-	volumeSourceNames?: {
-		configMapName?: string
-		secretName?:    string
+		// Additional service ports to append to base service ports
+		// Base service ports always include http:80->8080 (or https:443->8443)
+		// Use this to add custom service ports without replacing the defaults
+		additionalPorts: [...k8s.#ServicePort] | *[]
 	}
-
-	// Cluster CA ConfigMap name - can be set at environment level
-	// Used in projected volumes for TLS certificate authority configuration
-	clusterCAConfigMap?: string
 
 	// ===== ConfigMap Configuration =====
+	// High-level capability that creates a ConfigMap and wires it into the deployment
 
 	// ConfigMap data - if provided, creates a ConfigMap resource and mounts it
 	// This is a high-level capability that wires together:
 	// - ConfigMap resource creation
 	// - Volume definition in deployment
 	// - VolumeMount in container
-	configMapData?: {
+	configMap?: {
 		// The actual key-value data for the ConfigMap
 		data: [string]: string
 
@@ -120,44 +179,6 @@ import "example.com/cue-example/k8s"
 			}]
 		}
 	}
-
-	// ===== Health Probes =====
-
-	// Liveness probe configuration
-	// If not specified, uses default HTTP probe on /health/live:8080
-	livenessProbe?: k8s.#Probe
-
-	// Readiness probe configuration
-	// If not specified, uses default HTTP probe on /health/ready:8080
-	readinessProbe?: k8s.#Probe
-
-	// ===== Networking =====
-
-	// Enable HTTPS mode - switches from HTTP (port 8080) to HTTPS (port 8443)
-	// When enabled:
-	// - Container port changes from 8080 (http) to 8443 (https)
-	// - Service port changes from 80->8080 to 443->8443
-	// - Health probes use port 8443 with HTTPS scheme
-	enableHttps: bool | *false
-
-	// Additional container ports to append to base ports
-	// Base ports always include http:8080, plus debug:5005 when debug=true
-	// Use this to add custom ports without replacing the defaults
-	additionalContainerPorts: [...k8s.#ContainerPort] | *[]
-
-	// Additional service ports to append to base service ports
-	// Base service ports always include http:80->8080
-	// Use this to add custom service ports without replacing the defaults
-	additionalServicePorts: [...k8s.#ServicePort] | *[]
-
-	// Service annotations (applied to Service metadata)
-	serviceAnnotations?: [string]: string
-
-	// ===== Debug Mode =====
-
-	// Enable debug mode - adds debug port to deployment and creates debug service
-	// Typically enabled in dev/stage environments for troubleshooting
-	debug: bool | *false
 }
 
 // #VolumesConfig defines the volume configuration for an application.

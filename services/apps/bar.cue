@@ -13,11 +13,11 @@ bar: core.#App & {
 	// Set the application name
 	appName: "bar"
 
-	// Bar has app-level defaults for configMapData
-	// This demonstrates the new configMapData capability pattern
+	// Bar has app-level defaults for configMap
+	// This demonstrates the configMap capability pattern
 	// The ConfigMap resource, volume, and mount are automatically wired together
 	appConfig: {
-		configMapData: {
+		configMap: {
 			data: {
 				"redis-url": string | *base.#DefaultRedisURL
 				"log-level": string | *base.#DefaultLogLevel

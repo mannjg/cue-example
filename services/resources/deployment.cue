@@ -35,13 +35,13 @@ import (
 	}
 
 	// Computed env - merge defaults with additional
-	_env: list.Concat([_defaultEnv, appConfig.additionalEnv])
+	_env: list.Concat([_defaultEnv, appConfig.deployment.additionalEnv])
 
-	// Default envFrom sources (apps can extend via appConfig.additionalEnvFrom)
+	// Default envFrom sources (apps can extend via appConfig.deployment.additionalEnvFrom)
 	_defaultEnvFrom: []
 
 	// Computed envFrom - merge defaults with additional
-	_envFrom: list.Concat([_defaultEnvFrom, appConfig.additionalEnvFrom])
+	_envFrom: list.Concat([_defaultEnvFrom, appConfig.deployment.additionalEnvFrom])
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
 	_baseContainerPorts: [...k8s.#ContainerPort]
@@ -58,10 +58,10 @@ import (
 	if !appConfig.debug {
 		_debugContainerPorts: []
 	}
-	_containerPorts: list.Concat([_baseContainerPorts, _debugContainerPorts, appConfig.additionalContainerPorts])
+	_containerPorts: list.Concat([_baseContainerPorts, _debugContainerPorts, appConfig.deployment.additionalPorts])
 
 	// Volume configuration with smart defaults
-	_volumeConfig: appConfig.volumes | *{}
+	_volumeConfig: appConfig.deployment.volumes | *{}
 
 	// Build volumes list based on configuration
 	_volumes: list.Concat([
@@ -84,14 +84,14 @@ import (
 	_configVolumes: [
 		// Config volume is enabled if:
 		// 1. Explicitly enabled via volumeConfig.enableConfigVolume, OR
-		// 2. configMapData is provided (which auto-creates the ConfigMap)
-		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMapData != _|_) {
+		// 2. configMap is provided (which auto-creates the ConfigMap)
+		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMap != _|_) {
 			name: "config"
 			configMap: {
 				name: _volumeConfig.configVolumeConfigMapName | *"\(appName)-config"
-				// If configMapData provides specific items to mount, use those
-				if appConfig.configMapData != _|_ && appConfig.configMapData.mount != _|_ && appConfig.configMapData.mount.items != _|_ {
-					items: appConfig.configMapData.mount.items
+				// If configMap provides specific items to mount, use those
+				if appConfig.configMap != _|_ && appConfig.configMap.mount != _|_ && appConfig.configMap.mount.items != _|_ {
+					items: appConfig.configMap.mount.items
 				}
 			}
 		},
@@ -119,16 +119,16 @@ import (
 			let includeDownwardAPI = projConfig.includeDownwardAPI | *true
 
 			let volumeSourceNames = {
-				if appConfig.volumeSourceNames != _|_ && appConfig.volumeSourceNames.configMapName != _|_ {
-					configMapName: appConfig.volumeSourceNames.configMapName
+				if appConfig.deployment.volumeSourceNames != _|_ && appConfig.deployment.volumeSourceNames.configMapName != _|_ {
+					configMapName: appConfig.deployment.volumeSourceNames.configMapName
 				}
-				if appConfig.volumeSourceNames == _|_ || appConfig.volumeSourceNames.configMapName == _|_ {
+				if appConfig.deployment.volumeSourceNames == _|_ || appConfig.deployment.volumeSourceNames.configMapName == _|_ {
 					configMapName: "\(appName)-config"
 				}
-				if appConfig.volumeSourceNames != _|_ && appConfig.volumeSourceNames.secretName != _|_ {
-					secretName: appConfig.volumeSourceNames.secretName
+				if appConfig.deployment.volumeSourceNames != _|_ && appConfig.deployment.volumeSourceNames.secretName != _|_ {
+					secretName: appConfig.deployment.volumeSourceNames.secretName
 				}
-				if appConfig.volumeSourceNames == _|_ || appConfig.volumeSourceNames.secretName == _|_ {
+				if appConfig.deployment.volumeSourceNames == _|_ || appConfig.deployment.volumeSourceNames.secretName == _|_ {
 					secretName: "\(appName)-secrets"
 				}
 			}
@@ -150,13 +150,13 @@ import (
 							}
 						},
 						if len(clusterCAItems) > 0 {
-							if appConfig.clusterCAConfigMap != _|_ {
+							if appConfig.deployment.clusterCAConfigMap != _|_ {
 								configMap: {
-									name:  appConfig.clusterCAConfigMap
+									name:  appConfig.deployment.clusterCAConfigMap
 									items: clusterCAItems
 								}
 							}
-							if appConfig.clusterCAConfigMap == _|_ {
+							if appConfig.deployment.clusterCAConfigMap == _|_ {
 								configMap: {
 									name:  "\(appName)-cluster-ca"
 									items: clusterCAItems
@@ -194,11 +194,11 @@ import (
 	_configVolumeMounts: [
 		// Config volume mount is enabled if:
 		// 1. Explicitly enabled via volumeConfig.enableConfigVolume, OR
-		// 2. configMapData is provided (which auto-creates the ConfigMap)
-		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMapData != _|_) {
-			// If configMapData provides mount config, use it; otherwise use defaults
-			if appConfig.configMapData != _|_ && appConfig.configMapData.mount != _|_ {
-				let mountConfig = appConfig.configMapData.mount
+		// 2. configMap is provided (which auto-creates the ConfigMap)
+		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMap != _|_) {
+			// If configMap provides mount config, use it; otherwise use defaults
+			if appConfig.configMap != _|_ && appConfig.configMap.mount != _|_ {
+				let mountConfig = appConfig.configMap.mount
 				{
 					name:      "config"
 					mountPath: mountConfig.path | *base.#DefaultConfigVolumeMount.mountPath
@@ -208,7 +208,7 @@ import (
 					}
 				}
 			}
-			if appConfig.configMapData == _|_ || appConfig.configMapData.mount == _|_ {
+			if appConfig.configMap == _|_ || appConfig.configMap.mount == _|_ {
 				base.#DefaultConfigVolumeMount
 			}
 		},
@@ -234,36 +234,36 @@ import (
 			name:      appName
 			namespace: appConfig.namespace
 			labels:    _labels
-			if appConfig.deploymentAnnotations != _|_ {
-				annotations: appConfig.deploymentAnnotations
+			if appConfig.deployment.annotations != _|_ {
+				annotations: appConfig.deployment.annotations
 			}
 		}
 
 		spec: {
-			replicas: appConfig.replicas
+			replicas: appConfig.deployment.replicas
 
 			selector: matchLabels: _labels
 
 			// Deployment strategy with defaults
-			if appConfig.deploymentStrategy != _|_ {
-				strategy: appConfig.deploymentStrategy
+			if appConfig.deployment.strategy != _|_ {
+				strategy: appConfig.deployment.strategy
 			}
-			if appConfig.deploymentStrategy == _|_ {
+			if appConfig.deployment.strategy == _|_ {
 				strategy: base.#DefaultDeploymentStrategy
 			}
 
 			template: {
 				metadata: {
 					labels: _labels
-					if appConfig.podAnnotations != _|_ {
-						annotations: appConfig.podAnnotations
+					if appConfig.deployment.podAnnotations != _|_ {
+						annotations: appConfig.deployment.podAnnotations
 					}
 				}
 
 				spec: {
 					containers: [{
 						name:            appName
-						image:           appConfig.image
+						image:           appConfig.deployment.image
 						imagePullPolicy: "Always"
 
 						if len(_env) > 0 {
@@ -277,24 +277,24 @@ import (
 						volumeMounts: _volumeMounts
 
 						// Only include resources if defined (avoids rendering empty resources: {})
-						if appConfig.resources != _|_ {
-							resources: appConfig.resources
+						if appConfig.deployment.resources != _|_ {
+							resources: appConfig.deployment.resources
 						}
 
 						// Liveness probe with smart defaults - merges user settings with defaults
 						if appConfig.enableHttps {
-							livenessProbe: base.#DefaultHttpsLivenessProbe & (appConfig.livenessProbe | {})
+							livenessProbe: base.#DefaultHttpsLivenessProbe & (appConfig.deployment.livenessProbe | {})
 						}
 						if !appConfig.enableHttps {
-							livenessProbe: base.#DefaultLivenessProbe & (appConfig.livenessProbe | {})
+							livenessProbe: base.#DefaultLivenessProbe & (appConfig.deployment.livenessProbe | {})
 						}
 
 						// Readiness probe with smart defaults - merges user settings with defaults
 						if appConfig.enableHttps {
-							readinessProbe: base.#DefaultHttpsReadinessProbe & (appConfig.readinessProbe | {})
+							readinessProbe: base.#DefaultHttpsReadinessProbe & (appConfig.deployment.readinessProbe | {})
 						}
 						if !appConfig.enableHttps {
-							readinessProbe: base.#DefaultReadinessProbe & (appConfig.readinessProbe | {})
+							readinessProbe: base.#DefaultReadinessProbe & (appConfig.deployment.readinessProbe | {})
 						}
 
 						securityContext: base.#DefaultContainerSecurityContext
@@ -302,16 +302,16 @@ import (
 
 					volumes: _volumes
 
-					if appConfig.nodeSelector != _|_ {
-						nodeSelector: appConfig.nodeSelector
+					if appConfig.deployment.nodeSelector != _|_ {
+						nodeSelector: appConfig.deployment.nodeSelector
 					}
 
-					if appConfig.priorityClassName != _|_ {
-						priorityClassName: appConfig.priorityClassName
+					if appConfig.deployment.priorityClassName != _|_ {
+						priorityClassName: appConfig.deployment.priorityClassName
 					}
 
-					if appConfig.affinity != _|_ {
-						affinity: appConfig.affinity
+					if appConfig.deployment.affinity != _|_ {
+						affinity: appConfig.deployment.affinity
 					}
 
 					securityContext: base.#DefaultPodSecurityContext
