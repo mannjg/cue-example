@@ -133,6 +133,13 @@ import "example.com/cue-example/k8s"
 
 	// ===== Networking =====
 
+	// Enable HTTPS mode - switches from HTTP (port 8080) to HTTPS (port 8443)
+	// When enabled:
+	// - Container port changes from 8080 (http) to 8443 (https)
+	// - Service port changes from 80->8080 to 443->8443
+	// - Health probes use port 8443 with HTTPS scheme
+	enableHttps: bool | *false
+
 	// Additional container ports to append to base ports
 	// Base ports always include http:8080, plus debug:5005 when debug=true
 	// Use this to add custom ports without replacing the defaults

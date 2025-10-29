@@ -44,9 +44,13 @@ import (
 	_envFrom: list.Concat([_defaultEnvFrom, appConfig.additionalEnvFrom])
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
-	_baseContainerPorts: [
-		base.#DefaultHttpContainerPort,
-	]
+	_baseContainerPorts: [...k8s.#ContainerPort]
+	if appConfig.enableHttps {
+		_baseContainerPorts: [base.#DefaultHttpsContainerPort]
+	}
+	if !appConfig.enableHttps {
+		_baseContainerPorts: [base.#DefaultHttpContainerPort]
+	}
 	_debugContainerPorts: [...k8s.#ContainerPort]
 	if appConfig.debug {
 		_debugContainerPorts: [base.#DefaultDebugContainerPort]
@@ -278,10 +282,20 @@ import (
 						}
 
 						// Liveness probe with smart defaults - merges user settings with defaults
-						livenessProbe: base.#DefaultLivenessProbe & (appConfig.livenessProbe | {})
+						if appConfig.enableHttps {
+							livenessProbe: base.#DefaultHttpsLivenessProbe & (appConfig.livenessProbe | {})
+						}
+						if !appConfig.enableHttps {
+							livenessProbe: base.#DefaultLivenessProbe & (appConfig.livenessProbe | {})
+						}
 
 						// Readiness probe with smart defaults - merges user settings with defaults
-						readinessProbe: base.#DefaultReadinessProbe & (appConfig.readinessProbe | {})
+						if appConfig.enableHttps {
+							readinessProbe: base.#DefaultHttpsReadinessProbe & (appConfig.readinessProbe | {})
+						}
+						if !appConfig.enableHttps {
+							readinessProbe: base.#DefaultReadinessProbe & (appConfig.readinessProbe | {})
+						}
 
 						securityContext: base.#DefaultContainerSecurityContext
 					}]

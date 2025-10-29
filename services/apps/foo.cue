@@ -10,6 +10,11 @@ foo: core.#App & {
 	// Set the application name
 	appName: "foo"
 
+	// Enable HTTPS for all foo instances across all environments
+	appConfig: {
+		enableHttps: true
+	}
+
 	// All other configuration comes from environment files via appConfig
 	// The namespace defaults to "foo-namespace" but can be overridden
 	// Resources are automatically managed (deployment, service, and debugService when debug=true)

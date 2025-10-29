@@ -13,6 +13,12 @@ package base
 	protocol:      "TCP"
 }
 
+#DefaultHttpsContainerPort: {
+	name:          "https"
+	containerPort: 8443
+	protocol:      "TCP"
+}
+
 #DefaultDebugContainerPort: {
 	name:          "debug"
 	containerPort: 5005
@@ -26,6 +32,13 @@ package base
 	protocol:   "TCP"
 	port:       80
 	targetPort: 8080
+}
+
+#DefaultHttpsServicePort: {
+	name:       "https"
+	protocol:   "TCP"
+	port:       443
+	targetPort: 8443
 }
 
 #DefaultDebugServicePort: {
@@ -85,6 +98,18 @@ package base
 	failureThreshold:    3
 }
 
+#DefaultHttpsLivenessProbe: {
+	httpGet: {
+		path:   "/health/live"
+		port:   8443
+		scheme: "HTTPS"
+	}
+	initialDelaySeconds: 30
+	periodSeconds:       10
+	timeoutSeconds:      5
+	failureThreshold:    3
+}
+
 // Readiness Probe
 //
 // Default readiness probe with more aggressive timing to quickly detect
@@ -95,6 +120,18 @@ package base
 		path:   "/health/ready"
 		port:   8080
 		scheme: "HTTP"
+	}
+	initialDelaySeconds: 10
+	periodSeconds:       5
+	timeoutSeconds:      3
+	failureThreshold:    3
+}
+
+#DefaultHttpsReadinessProbe: {
+	httpGet: {
+		path:   "/health/ready"
+		port:   8443
+		scheme: "HTTPS"
 	}
 	initialDelaySeconds: 10
 	periodSeconds:       5

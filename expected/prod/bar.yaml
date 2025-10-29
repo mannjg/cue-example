@@ -55,21 +55,21 @@ spec:
           livenessProbe:
             httpGet:
               path: /health/live
-              port: 8080
-              scheme: HTTP
+              port: 8443
+              scheme: HTTPS
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
           ports:
-            - name: http
-              containerPort: 8080
+            - name: https
+              containerPort: 8443
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 8080
-              scheme: HTTP
+              port: 8443
+              scheme: HTTPS
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
@@ -174,8 +174,8 @@ spec:
     app: bar
     component: backend
   ports:
-    - name: http
+    - name: https
       protocol: TCP
-      port: 80
-      targetPort: 8080
+      port: 443
+      targetPort: 8443
   sessionAffinity: None

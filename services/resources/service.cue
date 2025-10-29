@@ -43,7 +43,13 @@ import (
 			}
 
 			// Service ports - always include base ports, plus additional
-			_baseServicePorts: [base.#DefaultHttpServicePort]
+			_baseServicePorts: [...k8s.#ServicePort]
+			if appConfig.enableHttps {
+				_baseServicePorts: [base.#DefaultHttpsServicePort]
+			}
+			if !appConfig.enableHttps {
+				_baseServicePorts: [base.#DefaultHttpServicePort]
+			}
 			ports: list.Concat([_baseServicePorts, appConfig.additionalServicePorts])
 
 			sessionAffinity: base.#DefaultSessionAffinity

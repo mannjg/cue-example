@@ -19,6 +19,9 @@ _envDefaults: {
 	namespace:          "production"
 	replicas:           3
 
+	// Enable HTTPS for all apps in production
+	enableHttps: true
+
 	// Production-grade resources
 	resources: base.#DefaultProductionResources
 
@@ -153,6 +156,7 @@ baz: appConfig: {
 	clusterCAConfigMap:   _envDefaults.clusterCAConfigMap
 	namespace:            _envDefaults.namespace
 	replicas:             _envDefaults.replicas
+	enableHttps:          _envDefaults.enableHttps
 	resources:            _envDefaults.resources
 	nodeSelector:         _envDefaults.nodeSelector
 	additionalEnvFrom:    _envDefaults.additionalEnvFrom
