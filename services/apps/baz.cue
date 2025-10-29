@@ -1,10 +1,12 @@
 // Package services defines the application-specific configuration for baz
 // This file instantiates the shared application template with baz-specific settings
-package services
+package apps
+
+import core "example.com/cue-example/services/core"
 
 // baz application configuration
 // Uses the #App template with baz-specific customizations
-baz: #App & {
+baz: core.#App & {
 	// Set the application name
 	appName: "baz"
 

@@ -1,18 +1,19 @@
 // Package services provides shared application templates and patterns
 // This file defines the Service resource templates
-package services
+package resources
 
 import (
 	"list"
 
 	"example.com/cue-example/k8s"
+	base "example.com/cue-example/services/base"
 )
 
 // #ServiceTemplate generates a Kubernetes Service from app configuration.
 #ServiceTemplate: {
 	// Required inputs
 	appName:   string
-	appConfig: #AppConfig
+	appConfig: base.#AppConfig
 
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
@@ -35,17 +36,17 @@ import (
 		}
 
 		spec: {
-			type: #DefaultServiceType
+			type: base.#DefaultServiceType
 
-			selector: #DefaultServiceSelector & {
+			selector: base.#DefaultServiceSelector & {
 				app: appName
 			}
 
 			// Service ports - always include base ports, plus additional
-			_baseServicePorts: [#DefaultHttpServicePort]
+			_baseServicePorts: [base.#DefaultHttpServicePort]
 			ports: list.Concat([_baseServicePorts, appConfig.additionalServicePorts])
 
-			sessionAffinity: #DefaultSessionAffinity
+			sessionAffinity: base.#DefaultSessionAffinity
 		}
 	}
 }
@@ -55,7 +56,7 @@ import (
 #DebugServiceTemplate: {
 	// Required inputs
 	appName:   string
-	appConfig: #AppConfig
+	appConfig: base.#AppConfig
 
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
@@ -79,15 +80,15 @@ import (
 			}
 
 			spec: {
-				type: #DefaultServiceType
+				type: base.#DefaultServiceType
 
-				selector: #DefaultServiceSelector & {
+				selector: base.#DefaultServiceSelector & {
 					app: appName
 				}
 
-				ports: [#DefaultDebugServicePort]
+				ports: [base.#DefaultDebugServicePort]
 
-				sessionAffinity: #DefaultSessionAffinity
+				sessionAffinity: base.#DefaultSessionAffinity
 			}
 		}
 	}

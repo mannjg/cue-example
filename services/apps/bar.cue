@@ -1,10 +1,15 @@
 // Package services defines the application-specific configuration for bar
 // This file instantiates the shared application template with bar-specific settings
-package services
+package apps
+
+import (
+	base "example.com/cue-example/services/base"
+	core "example.com/cue-example/services/core"
+)
 
 // bar application configuration
 // Uses the #App template with bar-specific customizations
-bar: #App & {
+bar: core.#App & {
 	// Set the application name
 	appName: "bar"
 
@@ -14,8 +19,8 @@ bar: #App & {
 	appConfig: {
 		configMapData: {
 			data: {
-				"redis-url": string | *#DefaultRedisURL
-				"log-level": string | *#DefaultLogLevel
+				"redis-url": string | *base.#DefaultRedisURL
+				"log-level": string | *base.#DefaultLogLevel
 			}
 			// Use default mount settings (/etc/app-config, readOnly: true)
 		}

@@ -1,15 +1,18 @@
 // Package services provides shared application templates and patterns
 // This file defines the ConfigMap resource template
-package services
+package resources
 
-import "example.com/cue-example/k8s"
+import (
+	"example.com/cue-example/k8s"
+	base "example.com/cue-example/services/base"
+)
 
 // #ConfigMapTemplate generates a Kubernetes ConfigMap when configMapData is provided.
 // This template creates an app-specific ConfigMap that can be mounted into the deployment.
 #ConfigMapTemplate: {
 	// Required inputs
 	appName:   string
-	appConfig: #AppConfig
+	appConfig: base.#AppConfig
 
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {

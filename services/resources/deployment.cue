@@ -1,11 +1,12 @@
 // Package services provides shared application templates and patterns
 // This file defines the Deployment resource template
-package services
+package resources
 
 import (
 	"list"
 
 	"example.com/cue-example/k8s"
+	base "example.com/cue-example/services/base"
 )
 
 // #DeploymentTemplate generates a Kubernetes Deployment from app configuration.
@@ -13,7 +14,7 @@ import (
 #DeploymentTemplate: {
 	// Required inputs
 	appName:   string
-	appConfig: #AppConfig
+	appConfig: base.#AppConfig
 
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
@@ -44,11 +45,11 @@ import (
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
 	_baseContainerPorts: [
-		#DefaultHttpContainerPort,
+		base.#DefaultHttpContainerPort,
 	]
 	_debugContainerPorts: [...k8s.#ContainerPort]
 	if appConfig.debug {
-		_debugContainerPorts: [#DefaultDebugContainerPort]
+		_debugContainerPorts: [base.#DefaultDebugContainerPort]
 	}
 	if !appConfig.debug {
 		_debugContainerPorts: []
@@ -94,7 +95,7 @@ import (
 
 	_cacheVolumes: [
 		if (_volumeConfig.enableCacheVolume | *true) {
-			let cacheSettings = _volumeConfig.cacheVolumeSettings | *#DefaultCacheVolumeSettings
+			let cacheSettings = _volumeConfig.cacheVolumeSettings | *base.#DefaultCacheVolumeSettings
 			{
 				name: "cache"
 				emptyDir: {
@@ -108,9 +109,9 @@ import (
 	_projectedSecretsVolumes: [
 		if (_volumeConfig.enableProjectedSecretsVolume | *true) {
 			let projConfig = _volumeConfig.projectedSecretsConfig | *{}
-			let secretItems = projConfig.secretItems | *#DefaultProjectedSecretItems
-			let configMapItems = projConfig.configMapItems | *#DefaultProjectedConfigMapItems
-			let clusterCAItems = projConfig.clusterCAItems | *#DefaultProjectedClusterCAItems
+			let secretItems = projConfig.secretItems | *base.#DefaultProjectedSecretItems
+			let configMapItems = projConfig.configMapItems | *base.#DefaultProjectedConfigMapItems
+			let clusterCAItems = projConfig.clusterCAItems | *base.#DefaultProjectedClusterCAItems
 			let includeDownwardAPI = projConfig.includeDownwardAPI | *true
 
 			let volumeSourceNames = {
@@ -130,7 +131,7 @@ import (
 			{
 				name: "projected-secrets"
 				projected: {
-					defaultMode: #DefaultProjectedVolumeMode
+					defaultMode: base.#DefaultProjectedVolumeMode
 					sources: [
 						if len(secretItems) > 0 {
 							secret: {
@@ -160,7 +161,7 @@ import (
 						},
 						if includeDownwardAPI {
 							downwardAPI: {
-								items: #DefaultDownwardAPIItems
+								items: base.#DefaultDownwardAPIItems
 							}
 						},
 					]
@@ -182,7 +183,7 @@ import (
 
 	_dataVolumeMounts: [
 		if (_volumeConfig.enableDataVolume | *true) {
-			#DefaultDataVolumeMount
+			base.#DefaultDataVolumeMount
 		},
 	]
 
@@ -196,28 +197,28 @@ import (
 				let mountConfig = appConfig.configMapData.mount
 				{
 					name:      "config"
-					mountPath: mountConfig.path | *#DefaultConfigVolumeMount.mountPath
-					readOnly:  mountConfig.readOnly | *#DefaultConfigVolumeMount.readOnly
+					mountPath: mountConfig.path | *base.#DefaultConfigVolumeMount.mountPath
+					readOnly:  mountConfig.readOnly | *base.#DefaultConfigVolumeMount.readOnly
 					if mountConfig.subPath != _|_ {
 						subPath: mountConfig.subPath
 					}
 				}
 			}
 			if appConfig.configMapData == _|_ || appConfig.configMapData.mount == _|_ {
-				#DefaultConfigVolumeMount
+				base.#DefaultConfigVolumeMount
 			}
 		},
 	]
 
 	_cacheVolumeMounts: [
 		if (_volumeConfig.enableCacheVolume | *true) {
-			#DefaultCacheVolumeMount
+			base.#DefaultCacheVolumeMount
 		},
 	]
 
 	_projectedSecretsVolumeMounts: [
 		if (_volumeConfig.enableProjectedSecretsVolume | *true) {
-			#DefaultProjectedSecretsVolumeMount
+			base.#DefaultProjectedSecretsVolumeMount
 		},
 	]
 
@@ -244,7 +245,7 @@ import (
 				strategy: appConfig.deploymentStrategy
 			}
 			if appConfig.deploymentStrategy == _|_ {
-				strategy: #DefaultDeploymentStrategy
+				strategy: base.#DefaultDeploymentStrategy
 			}
 
 			template: {
@@ -277,12 +278,12 @@ import (
 						}
 
 						// Liveness probe with smart defaults - merges user settings with defaults
-						livenessProbe: #DefaultLivenessProbe & (appConfig.livenessProbe | {})
+						livenessProbe: base.#DefaultLivenessProbe & (appConfig.livenessProbe | {})
 
 						// Readiness probe with smart defaults - merges user settings with defaults
-						readinessProbe: #DefaultReadinessProbe & (appConfig.readinessProbe | {})
+						readinessProbe: base.#DefaultReadinessProbe & (appConfig.readinessProbe | {})
 
-						securityContext: #DefaultContainerSecurityContext
+						securityContext: base.#DefaultContainerSecurityContext
 					}]
 
 					volumes: _volumes
@@ -299,7 +300,7 @@ import (
 						affinity: appConfig.affinity
 					}
 
-					securityContext: #DefaultPodSecurityContext
+					securityContext: base.#DefaultPodSecurityContext
 
 					serviceAccountName: appName
 				}

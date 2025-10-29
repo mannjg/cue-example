@@ -1,6 +1,6 @@
 // Package services provides shared application templates and patterns
 // This file defines the configuration schema for applications
-package services
+package base
 
 import "example.com/cue-example/k8s"
 

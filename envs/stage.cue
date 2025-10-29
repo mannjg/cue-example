@@ -3,13 +3,14 @@
 package envs
 
 import (
-	svc "example.com/cue-example/services"
+	apps "example.com/cue-example/services/apps"
+	base "example.com/cue-example/services/base"
 )
 
 // Bring service definitions into this package with explicit references
-foo: svc.foo
-bar: svc.bar
-baz: svc.baz
+foo: apps.foo
+bar: apps.bar
+baz: apps.baz
 
 // Environment-level defaults shared by all apps in staging
 // Apps can reference these values and override them if needed
@@ -19,7 +20,7 @@ _envDefaults: {
 	replicas:           2
 
 	// Common staging resource limits - production-like but more conservative
-	resources: svc.#DefaultStageResources
+	resources: base.#DefaultStageResources
 }
 
 // Staging environment configuration for foo app

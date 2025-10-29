@@ -1,8 +1,19 @@
 // Package services provides shared application templates and patterns
 // This file defines the main #App template that applications instantiate
-package services
+package core
 
-import "list"
+import (
+	"list"
+
+	base "example.com/cue-example/services/base"
+	resources "example.com/cue-example/services/resources"
+)
+
+// Hidden package-level references to ensure imports are recognized as used
+#_DeploymentTemplate:     resources.#DeploymentTemplate
+#_ServiceTemplate:         resources.#ServiceTemplate
+#_DebugServiceTemplate:    resources.#DebugServiceTemplate
+#_ConfigMapTemplate:       resources.#ConfigMapTemplate
 
 // #App is the main application template that apps instantiate.
 // Apps provide their appName, and environments provide appConfig values.
@@ -40,7 +51,7 @@ import "list"
 	// ===== Configuration Schema =====
 	// appConfig must be satisfied by environment files
 	// This is where all environment-specific configuration is provided
-	appConfig: #AppConfig & {
+	appConfig: base.#AppConfig & {
 		// Provide sensible defaults for optional fields
 		namespace: string | *appNamespace
 		labels: defaultLabels & {
@@ -49,45 +60,39 @@ import "list"
 		}
 	}
 
-	// ===== Resource Generation =====
-	// Capture each template separately to avoid field conflicts
-	_deploymentTemplate: #DeploymentTemplate & {
-		"appName":   appName
-		"appConfig": appConfig
-	}
-
-	_serviceTemplate: #ServiceTemplate & {
-		"appName":   appName
-		"appConfig": appConfig
-	}
-
-	_debugServiceTemplate: #DebugServiceTemplate & {
-		"appName":   appName
-		"appConfig": appConfig
-	}
-
-	_configMapTemplate: #ConfigMapTemplate & {
-		"appName":   appName
-		"appConfig": appConfig
-	}
-
 	// ===== Kubernetes Resources =====
 	// All Kubernetes resources are nested under the resources struct
 	// This enables dynamic list generation and clean resource organization
 	resources: {
 		// Always-present resources
-		deployment: _deploymentTemplate.deployment
-		service:    _serviceTemplate.service
+		deployment: (#_DeploymentTemplate & {
+			"appName":   appName
+			"appConfig": appConfig
+		}).deployment
+
+		service: (#_ServiceTemplate & {
+			"appName":   appName
+			"appConfig": appConfig
+		}).service
 
 		// Conditionally include debugService when debug mode is enabled
 		if appConfig.debug {
-			debugService: _debugServiceTemplate.debugService
+			debugService: (#_DebugServiceTemplate & {
+				"appName":   appName
+				"appConfig": appConfig
+			}).debugService
 		}
 
 		// Conditionally include configmap when configMapData is provided
 		if appConfig.configMapData != _|_ {
-			configmap: _configMapTemplate.configmap
+			configmap: (#_ConfigMapTemplate & {
+				"appName":   appName
+				"appConfig": appConfig
+			}).configmap
 		}
+
+		// Allow environments to extend individual resources
+		...
 	}
 
 	// ===== Resources List Management =====

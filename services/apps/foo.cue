@@ -1,10 +1,12 @@
 // Package services defines the application-specific configuration for foo
 // This file instantiates the shared application template with foo-specific settings
-package services
+package apps
+
+import core "example.com/cue-example/services/core"
 
 // foo application configuration
 // Uses the #App template with foo-specific settings
-foo: #App & {
+foo: core.#App & {
 	// Set the application name
 	appName: "foo"
 

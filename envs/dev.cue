@@ -3,14 +3,15 @@
 package envs
 
 import (
-	svc "example.com/cue-example/services"
+	apps "example.com/cue-example/services/apps"
+	base "example.com/cue-example/services/base"
 )
 
 // Bring service definitions into this package with explicit references
 // This makes the configuration flow clearer and more maintainable
-foo: svc.foo
-bar: svc.bar
-baz: svc.baz
+foo: apps.foo
+bar: apps.bar
+baz: apps.baz
 
 // Environment-level defaults shared by all apps in development
 // Apps can reference these values and override them if needed
@@ -19,7 +20,7 @@ _envDefaults: {
 	namespace:          "dev"
 
 	// Common development resource limits
-	resources: svc.#DefaultDevResources
+	resources: base.#DefaultDevResources
 }
 
 // Development environment configuration for foo app
