@@ -1,4 +1,25 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foo-config
+  namespace: dev
+  labels:
+    app: foo
+    deployment: foo
+data:
+  app-config.json: '{"api":{"key":"dev-api-key-12345","endpoint":"https://api.example.com/v1","timeout":30,"retries":5},"cache":{"enabled":true,"ttl":300,"backend":"redis"},"database":{"url":"postgres://dev-db.local:5432/foo_dev","poolSize":20,"maxLifetime":3600},"logging":{"level":"debug","format":"json"}}'
+  logging.yaml: |-
+    level: debug
+    handlers:
+      console:
+        class: StreamHandler
+        level: debug
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  environment.txt: |-
+    Log Level: debug
+    Retries: 5
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: foo-debug

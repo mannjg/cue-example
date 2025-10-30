@@ -28,22 +28,40 @@ _envDefaults: {
 
 // Staging environment configuration for foo app
 // Production-like environment for testing and validation before promoting to production
-foo: appConfig: {
-	// Use environment-level defaults for common settings
-	_envDefaults
+foo: {
+	// Setup renderer with stage-specific input values
+	_renderer: apps.#FooRenderer & {
+		inputs: {
+			// Scalar inputs for transformation
+			apiKey:      "stage-api-key-67890"
+			dbUrl:       "postgres://stage-db.example.com:5432/foo_stage"
+			enableCache: true
+			logLevel:    "info"
+			maxRetries:  3
 
-	// Debug mode disabled for foo in staging (default is false)
+			// Pass complete appConfig as input to renderer
+			appConfig: {
+				// Use environment-level defaults for common settings
+				_envDefaults
 
-	deployment: {
-		// Use stage-specific image tag - typically built from release candidate or main branch
-		image: "foo:stage-v1.2.3-rc1"
+				// Debug mode disabled for foo in staging (default is false)
 
-		// Override volume source names for staging environment
-		volumeSourceNames: {
-			configMapName: "foo-stage-config"
-			secretName:    "foo-stage-secrets"
+				deployment: {
+					// Use stage-specific image tag - typically built from release candidate or main branch
+					image: "foo:stage-v1.2.3-rc1"
+
+					// Override volume source names for staging environment
+					volumeSourceNames: {
+						configMapName: "foo-stage-config"
+						secretName:    "foo-stage-secrets"
+					}
+				}
+			}
 		}
 	}
+
+	// Use rendered config directly - no additional merging needed!
+	appConfig: _renderer.renderedConfig
 }
 
 // Staging environment configuration for bar app

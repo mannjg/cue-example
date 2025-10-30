@@ -52,58 +52,77 @@ _envDefaults: {
 
 // Production environment configuration for foo app
 // Optimized for reliability, performance, and high availability
-foo: appConfig: {
-	// Use environment-level defaults for common production settings
-	_envDefaults
+foo: {
+	// Setup renderer with production-specific input values
+	// Note: Cache disabled in production to demonstrate conditional logic
+	_renderer: apps.#FooRenderer & {
+		inputs: {
+			// Scalar inputs for transformation
+			apiKey:      "prod-api-key-secure-xyz789"
+			dbUrl:       "postgres://prod-db.example.com:5432/foo_prod"
+			enableCache: false  // Disabled in prod to demonstrate conditional logic
+			logLevel:    "warn"
+			maxRetries:  10
 
-	deployment: {
-		// Use specific versioned image tag for production
-		// Never use 'latest' or floating tags in production
-		image: "foo:v1.2.3"
+			// Pass complete appConfig as input to renderer
+			appConfig: {
+				// Use environment-level defaults for common production settings
+				_envDefaults
 
-		// Foo-specific production environment variables
-		additionalEnv: [
-			{
-				name:  "PRODUCTION_MODE"
-				value: "true"
-			},
-			{
-				name:  "ALERT_WEBHOOK_URL"
-				value: "https://alerts.example.com/webhook/foo"
-			},
-		]
+				deployment: {
+					// Use specific versioned image tag for production
+					// Never use 'latest' or floating tags in production
+					image: "foo:v1.2.3"
 
-		// Override volume source names for production environment
-		volumeSourceNames: {
-			configMapName: "foo-prod-config"
-			secretName:    "foo-prod-secrets"
+					// Production environment variables
+					additionalEnv: [
+						{
+							name:  "PRODUCTION_MODE"
+							value: "true"
+						},
+						{
+							name:  "ALERT_WEBHOOK_URL"
+							value: "https://alerts.example.com/webhook/foo"
+						},
+					]
+
+					// Override volume source names for production environment
+					volumeSourceNames: {
+						configMapName: "foo-prod-config"
+						secretName:    "foo-prod-secrets"
+					}
+
+					// Production-specific deployment annotations
+					annotations: {
+						"deployment.kubernetes.io/revision": "1"
+						"maintainer":                        "platform-team@example.com"
+						"cost-center":                       "engineering"
+					}
+
+					// Production-specific pod annotations
+					podAnnotations: {
+						"backup.velero.io/backup-volumes": "data"
+						"sidecar.istio.io/inject":          "true" // If using service mesh
+					}
+
+					// Uncomment to enable production pod priority and anti-affinity
+					// priorityClassName: "production-high"
+					// affinity: {
+					// 	podAntiAffinity: preferredDuringSchedulingIgnoredDuringExecution: [{
+					// 		weight: 100
+					// 		podAffinityTerm: {
+					// 			labelSelector: matchLabels: app: "foo"
+					// 			topologyKey: "topology.kubernetes.io/zone"
+					// 		}
+					// 	}]
+					// }
+				}
+			}
 		}
-
-		// Production-specific deployment annotations
-		annotations: {
-			"deployment.kubernetes.io/revision": "1"
-			"maintainer":                        "platform-team@example.com"
-			"cost-center":                       "engineering"
-		}
-
-		// Production-specific pod annotations
-		podAnnotations: {
-			"backup.velero.io/backup-volumes": "data"
-			"sidecar.istio.io/inject":          "true" // If using service mesh
-		}
-
-		// Uncomment to enable production pod priority and anti-affinity
-		// priorityClassName: "production-high"
-		// affinity: {
-		// 	podAntiAffinity: preferredDuringSchedulingIgnoredDuringExecution: [{
-		// 		weight: 100
-		// 		podAffinityTerm: {
-		// 			labelSelector: matchLabels: app: "foo"
-		// 			topologyKey: "topology.kubernetes.io/zone"
-		// 		}
-		// 	}]
-		// }
 	}
+
+	// Use rendered config directly - no additional merging needed!
+	appConfig: _renderer.renderedConfig
 }
 
 // Production environment configuration for bar app

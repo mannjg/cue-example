@@ -28,21 +28,40 @@ _envDefaults: {
 
 // Development environment configuration for foo app
 // Optimized for fast iteration and minimal resource usage
-foo: appConfig: {
-	// Use environment-level defaults for common settings
-	_envDefaults
+foo: {
+	// Setup renderer with dev-specific input values
+	// Renderer logic lives in apps.#FooRenderer (not duplicated here)
+	_renderer: apps.#FooRenderer & {
+		inputs: {
+			// Scalar inputs for transformation
+			apiKey:      "dev-api-key-12345"
+			dbUrl:       "postgres://dev-db.local:5432/foo_dev"
+			enableCache: true
+			logLevel:    "debug"
+			maxRetries:  5
 
-	// Enable debug mode for development troubleshooting
-	// Automatically adds debug port (5005) and creates separate debug service
-	debug: true
+			// Pass complete appConfig as input to renderer
+			appConfig: {
+				// Use environment-level defaults for common settings
+				_envDefaults
 
-	deployment: {
-		// Use latest dev image for rapid iteration
-		image: "foo:dev-latest"
+				// Enable debug mode for development troubleshooting
+				// Automatically adds debug port (5005) and creates separate debug service
+				debug: true
 
-		// Single replica for development
-		replicas: 1
+				deployment: {
+					// Use latest dev image for rapid iteration
+					image: "foo:dev-latest"
+
+					// Single replica for development
+					replicas: 1
+				}
+			}
+		}
 	}
+
+	// Use rendered config directly - no additional merging needed!
+	appConfig: _renderer.renderedConfig
 }
 
 // Development environment configuration for bar app
