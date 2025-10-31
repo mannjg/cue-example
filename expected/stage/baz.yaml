@@ -46,6 +46,8 @@ spec:
           env:
             - name: DEBUG
               value: "yes"
+            - name: ENVIRONMENT
+              value: staging
             - name: BAZ_FEATURE_FLAG
               value: enabled
             - name: BAZ_API_VERSION

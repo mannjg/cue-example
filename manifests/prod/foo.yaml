@@ -58,6 +58,10 @@ spec:
         - name: foo
           image: foo:v1.2.3
           env:
+            - name: FOO_SPECIAL
+              value: ibid
+            - name: ENVIRONMENT
+              value: production
             - name: PRODUCTION_MODE
               value: "true"
             - name: ALERT_WEBHOOK_URL

@@ -36,6 +36,27 @@ import (
 	// appName must be provided by the app definition file
 	appName: string
 
+	// ===== Optional App-Level Fields =====
+	// App-level environment variables (optional, defaults to empty list)
+	// These are applied to all instances of this app across all environments
+	// Separate from environment-specific additionalEnv to avoid unification conflicts
+	appEnvVars: [...] | *[]
+
+	// Environment-level environment variables (optional, defaults to empty list)
+	// These are provided by the environment file and applied to all apps in that environment
+	// Example: ENVIRONMENT=dev, ENVIRONMENT=staging, ENVIRONMENT=production
+	envEnvVars: [...] | *[]
+
+	// App-level envFrom sources (optional, defaults to empty list)
+	// These are applied to all instances of this app across all environments
+	// Used for app-level ConfigMap or Secret references
+	appEnvFrom: [...] | *[]
+
+	// Environment-level envFrom sources (optional, defaults to empty list)
+	// These are provided by the environment file and applied to all apps in that environment
+	// Example: shared-production-config ConfigMap
+	envEnvFrom: [...] | *[]
+
 	// ===== Default Values =====
 	// App-level default namespace
 	// Can be overridden by environment files via appConfig.namespace
@@ -60,14 +81,34 @@ import (
 		}
 	}
 
+	// ===== Internal Computed Values =====
+	// Baseline environment variables for all apps (based on debug flag, etc.)
+	_baseAppEnvs: [
+		if appConfig.debug {
+			{name: "DEBUG", value: "yes"}
+		},
+	]
+
+	// Concatenate all env var layers: base + app-level + environment-level
+	// This combined list is passed to the deployment template
+	// Final order: DEBUG (if debug) → app vars (e.g., FOO_SPECIAL) → env vars (e.g., ENVIRONMENT=dev)
+	_computedAppEnvVars: list.Concat([_baseAppEnvs, appEnvVars, envEnvVars])
+
+	// Concatenate all envFrom layers: app-level + environment-level
+	// This combined list is passed to the deployment template
+	// Final order: app envFrom (e.g., app-specific secrets) → env envFrom (e.g., shared-production-config)
+	_computedAppEnvFrom: list.Concat([appEnvFrom, envEnvFrom])
+
 	// ===== Kubernetes Resources =====
 	// All Kubernetes resources are nested under the resources struct
 	// This enables dynamic list generation and clean resource organization
 	resources: {
 		// Always-present resources
 		deployment: (#_DeploymentTemplate & {
-			"appName":   appName
-			"appConfig": appConfig
+			"appName":    appName
+			"appConfig":  appConfig
+			"appEnvVars": _computedAppEnvVars
+			"appEnvFrom": _computedAppEnvFrom
 		}).deployment
 
 		service: (#_ServiceTemplate & {

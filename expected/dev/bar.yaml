@@ -33,6 +33,9 @@ spec:
       containers:
         - name: bar
           image: bar:dev-latest
+          env:
+            - name: ENVIRONMENT
+              value: dev
           envFrom: []
           imagePullPolicy: Always
           livenessProbe:

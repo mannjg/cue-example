@@ -13,6 +13,13 @@ foo: core.#App & {
 	// Set the application name
 	appName: "foo"
 
+	// App-level environment variables (applied to all foo instances across all environments)
+	// These are separate from environment-specific vars to avoid conflicts
+	appEnvVars: [{
+		name: "FOO_SPECIAL"
+		value: "ibid"
+	}]
+
 	// Enable HTTPS for all foo instances across all environments
 	appConfig: {
 		enableHttps: true

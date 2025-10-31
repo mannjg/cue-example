@@ -22,6 +22,8 @@ spec:
         - name: baz
           image: baz:dev-latest
           env:
+            - name: ENVIRONMENT
+              value: dev
             - name: BAZ_FEATURE_FLAG
               value: enabled
             - name: BAZ_API_VERSION

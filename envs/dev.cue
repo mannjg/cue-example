@@ -26,6 +26,14 @@ _envDefaults: {
 	}
 }
 
+// Environment-level env vars applied to all apps in this environment
+_envEnvVars: [
+	{name: "ENVIRONMENT", value: "dev"},
+]
+
+// Environment-level envFrom sources applied to all apps in this environment
+_envEnvFrom: []
+
 // Development environment configuration for foo app
 // Optimized for fast iteration and minimal resource usage
 foo: {
@@ -62,6 +70,12 @@ foo: {
 
 	// Use rendered config directly - no additional merging needed!
 	appConfig: _renderer.renderedConfig
+
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
 }
 
 // Development environment configuration for bar app
@@ -89,22 +103,36 @@ bar: {
 		}
 	}
 
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
+
 	// ConfigMap is automatically generated from appConfig.configMap
 }
 
 // Development environment configuration for baz app
 // Optimized for fast iteration and minimal resource usage
-baz: appConfig: {
-	// Use environment-level defaults for common settings
-	_envDefaults
+baz: {
+	appConfig: {
+		// Use environment-level defaults for common settings
+		_envDefaults
 
-	// Debug mode disabled for baz (default is false)
+		// Debug mode disabled for baz (default is false)
 
-	deployment: {
-		// Use latest dev image for rapid iteration
-		image: "baz:dev-latest"
+		deployment: {
+			// Use latest dev image for rapid iteration
+			image: "baz:dev-latest"
 
-		// Single replica for development
-		replicas: 1
+			// Single replica for development
+			replicas: 1
+		}
 	}
+
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
 }

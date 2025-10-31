@@ -26,6 +26,14 @@ _envDefaults: {
 	}
 }
 
+// Environment-level env vars applied to all apps in this environment
+_envEnvVars: [
+	{name: "ENVIRONMENT", value: "staging"},
+]
+
+// Environment-level envFrom sources applied to all apps in this environment
+_envEnvFrom: []
+
 // Staging environment configuration for foo app
 // Production-like environment for testing and validation before promoting to production
 foo: {
@@ -62,6 +70,12 @@ foo: {
 
 	// Use rendered config directly - no additional merging needed!
 	appConfig: _renderer.renderedConfig
+
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
 }
 
 // Staging environment configuration for bar app
@@ -78,21 +92,35 @@ bar: {
 		}
 	}
 
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
+
 	// ConfigMap is automatically generated from appConfig.configMap
 }
 
 // Staging environment configuration for baz app
-baz: appConfig: {
-	// Use environment-level defaults for common settings
-	_envDefaults
+baz: {
+	appConfig: {
+		// Use environment-level defaults for common settings
+		_envDefaults
 
-	// Enable debug mode for baz in staging for testing
-	// Automatically adds debug port (5005) and creates separate debug service
-	// Demonstrates that different apps can have different debug settings per environment
-	debug: true
+		// Enable debug mode for baz in staging for testing
+		// Automatically adds debug port (5005) and creates separate debug service
+		// Demonstrates that different apps can have different debug settings per environment
+		debug: true
 
-	deployment: {
-		// Use stage-specific image tag
-		image: "baz:stage-v1.2.3-rc1"
+		deployment: {
+			// Use stage-specific image tag
+			image: "baz:stage-v1.2.3-rc1"
+		}
 	}
+
+	// Pass environment-level env vars to app
+	envEnvVars: _envEnvVars
+
+	// Pass environment-level envFrom sources to app
+	envEnvFrom: _envEnvFrom
 }

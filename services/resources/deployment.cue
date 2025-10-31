@@ -16,6 +16,12 @@ import (
 	appName:   string
 	appConfig: base.#AppConfig
 
+	// Optional: app-level environment variables (provided by app.cue)
+	appEnvVars: [...k8s.#EnvVar] | *[]
+
+	// Optional: app-level envFrom sources (provided by app.cue)
+	appEnvFrom: [...k8s.#EnvFromSource] | *[]
+
 	// Default labels (can be extended via appConfig.labels)
 	_defaultLabels: {
 		app:        appName
@@ -25,23 +31,13 @@ import (
 	// Computed labels - merge defaults with config
 	_labels: _defaultLabels & appConfig.labels
 
-	// Default environment variables (apps can extend via appConfig.additionalEnv)
-	_defaultEnv: [...k8s.#EnvVar]
-	if appConfig.debug {
-		_defaultEnv: [{name: "DEBUG", value: "yes"}]
-	}
-	if !appConfig.debug {
-		_defaultEnv: []
-	}
+	// Computed env - concatenate: app-level defaults + environment-specific
+	// Note: appEnvVars includes system defaults (like DEBUG) computed in app.cue
+	_env: list.Concat([appEnvVars, appConfig.deployment.additionalEnv])
 
-	// Computed env - merge defaults with additional
-	_env: list.Concat([_defaultEnv, appConfig.deployment.additionalEnv])
-
-	// Default envFrom sources (apps can extend via appConfig.deployment.additionalEnvFrom)
-	_defaultEnvFrom: []
-
-	// Computed envFrom - merge defaults with additional
-	_envFrom: list.Concat([_defaultEnvFrom, appConfig.deployment.additionalEnvFrom])
+	// Computed envFrom - concatenate: app-level + environment-specific
+	// Note: appEnvFrom includes app-level and environment-level envFrom computed in app.cue
+	_envFrom: list.Concat([appEnvFrom, appConfig.deployment.additionalEnvFrom])
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
 	_baseContainerPorts: [...k8s.#ContainerPort]

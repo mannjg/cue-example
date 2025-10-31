@@ -67,6 +67,10 @@ spec:
           env:
             - name: DEBUG
               value: "yes"
+            - name: FOO_SPECIAL
+              value: ibid
+            - name: ENVIRONMENT
+              value: dev
           envFrom: []
           imagePullPolicy: Always
           livenessProbe:
