@@ -9,6 +9,58 @@ import (
 	base "example.com/cue-example/services/base"
 )
 
+// _projectedSecretsVolumeBuilder builds a projected secrets volume with configurable items.
+// This local helper consolidates the complex logic for building projected volumes that combine
+// secrets, configmaps, cluster CA, and downward API into a single volume.
+_projectedSecretsVolumeBuilder: {
+	// Configuration inputs with defaults
+	enabled:            bool | *true
+	secretItems:        [...{key: string, path: string}] | *base.#DefaultProjectedSecretItems
+	configMapItems:     [...{key: string, path: string}] | *base.#DefaultProjectedConfigMapItems
+	clusterCAItems:     [...{key: string, path: string}] | *base.#DefaultProjectedClusterCAItems
+	includeDownwardAPI: bool | *true
+
+	// Volume source names (must be provided by caller with their own defaults)
+	configMapName:      string
+	secretName:         string
+	clusterCAConfigMap: string
+
+	// Output volume (conditional on enabled)
+	volume: [
+		if enabled {
+			name: "projected-secrets"
+			projected: {
+				defaultMode: base.#DefaultProjectedVolumeMode
+				sources: [
+					if len(secretItems) > 0 {
+						secret: {
+							name:  secretName
+							items: secretItems
+						}
+					},
+					if len(configMapItems) > 0 {
+						configMap: {
+							name:  configMapName
+							items: configMapItems
+						}
+					},
+					if len(clusterCAItems) > 0 {
+						configMap: {
+							name:  clusterCAConfigMap
+							items: clusterCAItems
+						}
+					},
+					if includeDownwardAPI {
+						downwardAPI: {
+							items: base.#DefaultDownwardAPIItems
+						}
+					},
+				]
+			}
+		},
+	]
+}
+
 // #DeploymentTemplate generates a Kubernetes Deployment from app configuration.
 // This is a pure template that takes appName and appConfig and produces a Deployment.
 #DeploymentTemplate: {
@@ -40,21 +92,12 @@ import (
 	_envFrom: list.Concat([appEnvFrom, appConfig.deployment.additionalEnvFrom])
 
 	// Container ports - always include base ports, plus debug when enabled, plus additional
-	_baseContainerPorts: [...k8s.#ContainerPort]
-	if appConfig.enableHttps {
-		_baseContainerPorts: [base.#DefaultHttpsContainerPort]
-	}
-	if !appConfig.enableHttps {
-		_baseContainerPorts: [base.#DefaultHttpContainerPort]
-	}
-	_debugContainerPorts: [...k8s.#ContainerPort]
-	if appConfig.debug {
-		_debugContainerPorts: [base.#DefaultDebugContainerPort]
-	}
-	if !appConfig.debug {
-		_debugContainerPorts: []
-	}
-	_containerPorts: list.Concat([_baseContainerPorts, _debugContainerPorts, appConfig.deployment.additionalPorts])
+	_containerPorts: [
+		if appConfig.enableHttps {base.#DefaultHttpsContainerPort},
+		if !appConfig.enableHttps {base.#DefaultHttpContainerPort},
+		if appConfig.debug {base.#DefaultDebugContainerPort},
+		for port in appConfig.deployment.additionalPorts {port},
+	]
 
 	// Volume configuration with smart defaults
 	_volumeConfig: appConfig.deployment.volumes | *{}
@@ -106,69 +149,23 @@ import (
 		},
 	]
 
-	_projectedSecretsVolumes: [
-		if (_volumeConfig.enableProjectedSecretsVolume | *true) {
-			let projConfig = _volumeConfig.projectedSecretsConfig | *{}
-			let secretItems = projConfig.secretItems | *base.#DefaultProjectedSecretItems
-			let configMapItems = projConfig.configMapItems | *base.#DefaultProjectedConfigMapItems
-			let clusterCAItems = projConfig.clusterCAItems | *base.#DefaultProjectedClusterCAItems
-			let includeDownwardAPI = projConfig.includeDownwardAPI | *true
+	// Build projected secrets volume using helper
+	_projectedSecretsHelper: _projectedSecretsVolumeBuilder & {
+		let projConfig = _volumeConfig.projectedSecretsConfig | *{}
 
-			let volumeSourceNames = {
-				if appConfig.deployment.volumeSourceNames != _|_ && appConfig.deployment.volumeSourceNames.configMapName != _|_ {
-					configMapName: appConfig.deployment.volumeSourceNames.configMapName
-				}
-				if appConfig.deployment.volumeSourceNames == _|_ || appConfig.deployment.volumeSourceNames.configMapName == _|_ {
-					configMapName: "\(appName)-config"
-				}
-				if appConfig.deployment.volumeSourceNames != _|_ && appConfig.deployment.volumeSourceNames.secretName != _|_ {
-					secretName: appConfig.deployment.volumeSourceNames.secretName
-				}
-				if appConfig.deployment.volumeSourceNames == _|_ || appConfig.deployment.volumeSourceNames.secretName == _|_ {
-					secretName: "\(appName)-secrets"
-				}
-			}
-			{
-				name: "projected-secrets"
-				projected: {
-					defaultMode: base.#DefaultProjectedVolumeMode
-					sources: [
-						if len(secretItems) > 0 {
-							secret: {
-								name:  volumeSourceNames.secretName
-								items: secretItems
-							}
-						},
-						if len(configMapItems) > 0 {
-							configMap: {
-								name:  volumeSourceNames.configMapName
-								items: configMapItems
-							}
-						},
-						if len(clusterCAItems) > 0 {
-							if appConfig.deployment.clusterCAConfigMap != _|_ {
-								configMap: {
-									name:  appConfig.deployment.clusterCAConfigMap
-									items: clusterCAItems
-								}
-							}
-							if appConfig.deployment.clusterCAConfigMap == _|_ {
-								configMap: {
-									name:  "\(appName)-cluster-ca"
-									items: clusterCAItems
-								}
-							}
-						},
-						if includeDownwardAPI {
-							downwardAPI: {
-								items: base.#DefaultDownwardAPIItems
-							}
-						},
-					]
-				}
-			}
-		},
-	]
+		enabled:            _volumeConfig.enableProjectedSecretsVolume | *true
+		secretItems:        projConfig.secretItems | *base.#DefaultProjectedSecretItems
+		configMapItems:     projConfig.configMapItems | *base.#DefaultProjectedConfigMapItems
+		clusterCAItems:     projConfig.clusterCAItems | *base.#DefaultProjectedClusterCAItems
+		includeDownwardAPI: projConfig.includeDownwardAPI | *true
+
+		// Provide volume source names with defaults based on appName
+		configMapName:      appConfig.deployment.volumeSourceNames.configMapName | *"\(appName)-config"
+		secretName:         appConfig.deployment.volumeSourceNames.secretName | *"\(appName)-secrets"
+		clusterCAConfigMap: appConfig.deployment.clusterCAConfigMap | *"\(appName)-cluster-ca"
+	}
+
+	_projectedSecretsVolumes: _projectedSecretsHelper.volume
 
 	_additionalVolumes: _volumeConfig.additionalVolumes | *[]
 
@@ -192,20 +189,17 @@ import (
 		// 1. Explicitly enabled via volumeConfig.enableConfigVolume, OR
 		// 2. configMap is provided (which auto-creates the ConfigMap)
 		if (_volumeConfig.enableConfigVolume | *true) || (appConfig.configMap != _|_) {
-			// If configMap provides mount config, use it; otherwise use defaults
-			if appConfig.configMap != _|_ && appConfig.configMap.mount != _|_ {
-				let mountConfig = appConfig.configMap.mount
-				{
-					name:      "config"
-					mountPath: mountConfig.path | *base.#DefaultConfigVolumeMount.mountPath
-					readOnly:  mountConfig.readOnly | *base.#DefaultConfigVolumeMount.readOnly
-					if mountConfig.subPath != _|_ {
-						subPath: mountConfig.subPath
+			base.#DefaultConfigVolumeMount & {
+				if appConfig.configMap != _|_ && appConfig.configMap.mount != _|_ {
+					let mountConfig = appConfig.configMap.mount
+					{
+						mountPath: mountConfig.path
+						readOnly:  mountConfig.readOnly
+						if mountConfig.subPath != _|_ {
+							subPath: mountConfig.subPath
+						}
 					}
 				}
-			}
-			if appConfig.configMap == _|_ || appConfig.configMap.mount == _|_ {
-				base.#DefaultConfigVolumeMount
 			}
 		},
 	]
@@ -223,6 +217,18 @@ import (
 	]
 
 	_additionalVolumeMounts: _volumeConfig.additionalVolumeMounts | *[]
+
+	// Helper to select base probes based on HTTPS setting
+	_baseProbes: {
+		liveness: [
+			if appConfig.enableHttps {base.#DefaultHttpsLivenessProbe},
+			if !appConfig.enableHttps {base.#DefaultLivenessProbe},
+		][0]
+		readiness: [
+			if appConfig.enableHttps {base.#DefaultHttpsReadinessProbe},
+			if !appConfig.enableHttps {base.#DefaultReadinessProbe},
+		][0]
+	}
 
 	// The actual Deployment resource
 	deployment: k8s.#Deployment & {
@@ -278,20 +284,10 @@ import (
 						}
 
 						// Liveness probe with smart defaults - merges user settings with defaults
-						if appConfig.enableHttps {
-							livenessProbe: base.#DefaultHttpsLivenessProbe & (appConfig.deployment.livenessProbe | {})
-						}
-						if !appConfig.enableHttps {
-							livenessProbe: base.#DefaultLivenessProbe & (appConfig.deployment.livenessProbe | {})
-						}
+						livenessProbe: _baseProbes.liveness & (appConfig.deployment.livenessProbe | {})
 
 						// Readiness probe with smart defaults - merges user settings with defaults
-						if appConfig.enableHttps {
-							readinessProbe: base.#DefaultHttpsReadinessProbe & (appConfig.deployment.readinessProbe | {})
-						}
-						if !appConfig.enableHttps {
-							readinessProbe: base.#DefaultReadinessProbe & (appConfig.deployment.readinessProbe | {})
-						}
+						readinessProbe: _baseProbes.readiness & (appConfig.deployment.readinessProbe | {})
 
 						securityContext: base.#DefaultContainerSecurityContext
 					}]
